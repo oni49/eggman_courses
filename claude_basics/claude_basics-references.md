@@ -3,7 +3,7 @@
 
 Anchors for the course's claims, tiered by how to use each one: **Foundational** (the primary source), **Verify** (read this to check the mechanism yourself), **Go deeper** (extends the topic). The scaffold ("Eggman's Three Layers") is pedagogy; everything below is the real, separately-documented material underneath it.
 
-**Companion docs:** `claude-course-map.md` · `claude-vocabulary.md` · `threat-modeling-safety-layers.md`.
+**Companion docs:** `claude_basics-course-map.md` · `claude_basics-vocabulary.md` · `claude_basics-threat-modeling-safety-layers.md`.
 
 ---
 

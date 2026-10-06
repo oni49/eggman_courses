@@ -67,7 +67,7 @@ The most effective fix for drift or a faded instruction: don't just restate the 
 ---
 
 ## Session 4 — Safety Architecture
-*(Full threat-modeling treatment lives in `threat-modeling-safety-layers.md`. Core terms below.)*
+*(Full threat-modeling treatment lives in `claude_basics-threat-modeling-safety-layers.md`. Core terms below.)*
 
 **Eggman's Three Layers**
 A teaching scaffold — not a citable taxonomy — for the safety architecture: Layer 1 trained temperament (in the weights), Layer 2 system prompt & in-context instructions (in the window), Layer 3 external classifiers (outside the window). Organizing principle: "depth wins" — deeper layers override shallower ones.
@@ -141,4 +141,4 @@ Probability is driven by how much infrastructure is *shared* (shared indexes/cac
 ---
 
 *Last updated: Bonus Session — Cross-Tenant Leakage (course complete)*
-*Companion docs: claude-course-map.md · threat-modeling-safety-layers.md · claude-references.md*
+*Companion docs: claude_basics-course-map.md · claude_basics-threat-modeling-safety-layers.md · claude_basics-references.md*

@@ -8,11 +8,11 @@
 ## How to resume
 1. **Load the `professor-eggman` skill.** Eggman owns the conversation — stay in character, don't drift to generic assistant mode.
 2. **Read the companion docs in the "Eggman Courses" project:**
-   - `claude-course-map.md` — curriculum + status flags
-   - `claude-lessons.md` — delivered lectures, verbatim
-   - `claude-vocabulary.md` — running glossary
-   - `claude-references.md` — tiered reading list
-   - `threat-modeling-safety-layers.md` — the extended threat-model deep-dive (side-threads + cross-tenant bonus)
+   - `claude_basics-course-map.md` — curriculum + status flags
+   - `claude_basics-lessons.md` — delivered lectures, verbatim
+   - `claude_basics-vocabulary.md` — running glossary
+   - `claude_basics-references.md` — tiered reading list
+   - `claude_basics-threat-modeling-safety-layers.md` — the extended threat-model deep-dive (side-threads + cross-tenant bonus)
 3. **This course is COMPLETE.** There is no next numbered session. Resume only if the student wants a follow-on seminar on a deferred thread (see "Next up"), or has follow-up questions on delivered material.
 
 Kickoff line to type: *"Eggman — the Claude Capability & Safety course is done. I want to pick up [the training-mechanics thread / the agentic-defenses thread / a question about Session N]."*
@@ -35,7 +35,7 @@ Six core sessions plus a bonus, all check-ins passed (no open corrections, no pe
 6. **The Assembled System** — capability/vulnerability duality; tools, RAG, search, artifacts; compounding failure in the seams.
 - **Bonus — Cross-Tenant Leakage at the LLM/SaaS Seam** — plumbing-not-model; four channels; the embed/write/read control surface; structural (non-adversarial) leakage.
 
-The extended threat-modeling side-threads (the field guide for reading layers from outside, the dilution attack, the context fork bomb, GUI-vs-API, the defender's lens, the full reference list) all live in `threat-modeling-safety-layers.md`, kept out of `claude-lessons.md` to keep the lecture record pure.
+The extended threat-modeling side-threads (the field guide for reading layers from outside, the dilution attack, the context fork bomb, GUI-vs-API, the defender's lens, the full reference list) all live in `claude_basics-threat-modeling-safety-layers.md`, kept out of `claude_basics-lessons.md` to keep the lecture record pure.
 
 ---
 
@@ -52,7 +52,7 @@ Either would be a fresh short seminar in its own right. Offer; don't force.
 ~10-minute sessions. Per-lesson format: core explanation (400–600 words, hard ceiling) → "So what?" → one specific check-in question → 2–3 tiered references → one-line teaser (only after the student signals readiness). Bottom-up scaffolding. **Never auto-advance:** evaluate the check-in, correct and re-test if wrong, then explicitly ask "move on or dig in?" Stay in character throughout.
 
 ## Maintenance note for the resuming session
-If a follow-on seminar is taught, keep it OUT of `claude-lessons.md` unless the student wants the slug extended — a new thread is arguably its own course. Update the four `claude-*` docs only for material that belongs to this course; capture side-threads in the threat-model deep-dive doc, as before.
+If a follow-on seminar is taught, keep it OUT of `claude_basics-lessons.md` unless the student wants the slug extended — a new thread is arguably its own course. Update the four `claude_basics-*` docs only for material that belongs to this course; capture side-threads in the threat-model deep-dive doc, as before.
 
 ---
 *Handoff generated after course completion. Date: 06 Oct 2026.*

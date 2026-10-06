@@ -3,7 +3,7 @@
 
 A seven-session seminar (plus a bonus) on how Claude actually works — aimed at a technically literate professional who wanted to both use Claude better and understand where LLM systems fail. Bottom-up: foundations → mechanisms → safety → the assembled system.
 
-**Companion docs:** `claude-vocabulary.md` (running glossary) · `threat-modeling-safety-layers.md` (full threat-model treatment) · `claude-references.md` (reading list).
+**Companion docs:** `claude_basics-vocabulary.md` (running glossary) · `claude_basics-threat-modeling-safety-layers.md` (full threat-model treatment) · `claude_basics-references.md` (reading list).
 
 ---
 
@@ -25,7 +25,7 @@ The window as a whiteboard: everything on it is visible, everything off it is in
 Claude re-reads the whole transcript — including its own past replies — every turn. Consequences: precedent-setting (early tone/format persists), correction persistence (fixes stick because the demonstration stays visible), drift (small deviations compound), and relative weight decay (early instructions dilute as text piles up). The fix for a faded instruction isn't just restating it — it's *re-seeding precedent* by regenerating compliant output into the recent, high-weight zone.
 
 **4 — Safety Architecture**
-The core lesson, and the spine of the back half. "Eggman's Three Layers" (a teaching scaffold, not a citable taxonomy): Layer 1 trained temperament in the weights, Layer 2 system-prompt/in-context instructions, Layer 3 external classifiers. Key splits: generative vs. inspective; in-window vs. external; temperament vs. text. "Depth wins." This session spawned an extended threat-modeling side-thread — captured in full in `threat-modeling-safety-layers.md`.
+The core lesson, and the spine of the back half. "Eggman's Three Layers" (a teaching scaffold, not a citable taxonomy): Layer 1 trained temperament in the weights, Layer 2 system-prompt/in-context instructions, Layer 3 external classifiers. Key splits: generative vs. inspective; in-window vs. external; temperament vs. text. "Depth wins." This session spawned an extended threat-modeling side-thread — captured in full in `claude_basics-threat-modeling-safety-layers.md`.
 
 **5 — Where the Legitimate Flexibility Lives**
 The inverse of adversarial framing. Manipulation (change the constraints) fails and fails worse when aggressive; clarification (change Claude's understanding with true context) works, because caution calibrates to the model's read of the situation. Genuine vs. performed purpose; hard floors that no context moves. To a defender, though, the manipulation/clarification distinction collapses — motive isn't a control and isn't observable.

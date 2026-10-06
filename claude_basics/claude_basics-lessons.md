@@ -1,7 +1,7 @@
 # Understanding Claude: The Lessons
 *Professor Eggman's Seminar — core lectures only*
 
-The six taught lessons, each as delivered: core explanation, a "So what?", and a check-in question. Side-threads, discussions, and the bonus session are not included here — see `claude-course-map.md` and `threat-modeling-safety-layers.md` for those.
+The six taught lessons, each as delivered: core explanation, a "So what?", and a check-in question. Side-threads, discussions, and the bonus session are not included here — see `claude_basics-course-map.md` and `claude_basics-threat-modeling-safety-layers.md` for those.
 
 ---
 
