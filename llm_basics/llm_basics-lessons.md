@@ -386,10 +386,10 @@ Everything below was deliberately excluded under your rules. Listed so you can o
 - Your responses, and all my evaluations/corrections of your check-in answers.
 - Opening recaps and one-line previews at the top of each session.
 - End-of-session teasers for the next topic.
-- All "Further reading" reference lists (they live in `llm-references.md`).
+- All "Further reading" reference lists (they live in `llm_basics-references.md`).
 - Stage directions and in-character banter (*"uncaps marker,"* coffee business, etc.).
 
-**Side-threads and tangents cut (candidates for their own lessons — several already flagged in `llm-course-map.md`):**
+**Side-threads and tangents cut (candidates for their own lessons — several already flagged in `llm_basics-course-map.md`):**
 - The **tensor / "matrix of matrices"** maths sidebar (Session 2 area).
 - The **"why does ChatGPT seem to get worse after launch"** discussion — perception drift, silent updates, quantisation (Session 5 area).
 - The **"correlated errors / LLM-checking-LLM"** synthesis that followed the Session 7 check-in (it extended your answer rather than being taught up front).
@@ -398,4 +398,4 @@ Everything below was deliberately excluded under your rules. Listed so you can o
 
 ---
 
-*Extracted 06 Oct 2026. Core curriculum, Sessions 1–8. Companion docs: `llm-course-map.md`, `llm-vocabulary.md`, `llm-references.md`.*
+*Extracted 06 Oct 2026. Core curriculum, Sessions 1–8. Companion docs: `llm_basics-course-map.md`, `llm_basics-vocabulary.md`, `llm_basics-references.md`.*

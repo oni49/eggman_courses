@@ -270,4 +270,4 @@ A security platform that aggregates and correlates signals from multiple paralle
 ---
 
 *Last updated: Session 8 — Security Implications (course complete)*
-*See llm-course-map.md for the end-of-curriculum audit and expansion candidates.*
+*See llm_basics-course-map.md for the end-of-curriculum audit and expansion candidates.*
