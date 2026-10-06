@@ -29,6 +29,21 @@ Courses not yet started are tracked as [issues](https://github.com/oni49/eggman_
 
 ## Courses
 
+### [`llm_basics/`](llm_basics/): LLM & GPT (complete)
+
+Eight sessions on how large language models work, from why language is hard to compute through to the attack surface of a deployed model. The through-line is that **the gap between form and meaning is the whole course: it limits capability in Session 1 and becomes an attack surface in Session 8.**
+
+1. **Why Language Modelling Is Hard**: syntax vs. semantics, ambiguity, world knowledge, and why bag-of-words fails
+2. **Tokens, Embeddings, and Vector Spaces**: meaning as geometry, Word2Vec, static vs. contextual embeddings
+3. **The Transformer Architecture**: self-attention, Query/Key/Value, multi-head attention, and lost-in-the-middle
+4. **Pre-training**: next-token prediction, self-supervised learning, base models, and recombination vs. true novelty
+5. **Fine-tuning, RLHF, and Alignment**: SFT, reward models, reward hacking, sycophancy, and Constitutional AI
+6. **Inference, Temperature, and Sampling**: logits, softmax, temperature, top-k / top-p, and non-reproducibility
+7. **Capabilities, Emergent Behaviour, and Failure Modes**: hallucination, confidence ≠ correctness, and why one LLM can't check another
+8. **Security Implications**: the collapse of instructions and data, direct vs. indirect prompt injection, agentic escalation, and defending at the blast radius
+
+The four course docs are in the folder. Follow-ons: a rebuilt Session 2 ([#5](https://github.com/oni49/eggman_courses/issues/5)), the Transformer mechanism gaps ([#8](https://github.com/oni49/eggman_courses/issues/8)), and the data pipeline and scaling laws as part of training in practice ([#3](https://github.com/oni49/eggman_courses/issues/3)).
+
 ### [`claude_basics/`](claude_basics/): Understanding Claude: Capability, Use & Safety (complete)
 
 Six sessions plus a bonus on how Claude actually works, from "what is this thing" to "how do I threat-model a production deployment of it". The through-line is that **the vulnerability lives in the trust relationships between components, not in the component that happens to be new.**
