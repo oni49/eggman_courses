@@ -41,8 +41,8 @@ The extended threat-modeling side-threads (the field guide for reading layers fr
 
 ## Next up (optional follow-on threads Eggman explicitly deferred)
 These were "black-boxed" during the course and offered as future seminars — not started:
-- **Training mechanics** — how the Layer 1 temperament is actually trained (the black box behind Session 4). Deeper than the Constitutional-AI summary given.
-- **Agentic defenses** — the specific controls glossed in Session 6: input/output segregation, tool sandboxing, privilege separation, human-in-the-loop on consequential actions.
+- **Training mechanics** (tracked in issue #2, with #3 alongside) — how the Layer 1 temperament is actually trained (the black box behind Session 4). Deeper than the Constitutional-AI summary given.
+- **Agentic defenses** (tracked in issue #6, paired with #4) — the specific controls glossed in Session 6: input/output segregation, tool sandboxing, privilege separation, human-in-the-loop on consequential actions.
 
 Either would be a fresh short seminar in its own right. Offer; don't force.
 
