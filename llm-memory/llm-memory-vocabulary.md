@@ -40,3 +40,17 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **Prompt caching:** A provider feature that keeps a prompt prefix's KV cache *between* calls, so it isn't recomputed or fully billed again.
 - **Prefix property:** Any token's cached computation stays valid only if every token before it is unchanged. Edits invalidate everything downstream.
 - **Cache breakpoint:** A boundary the client marks for prompt caching. Reuse happens at breakpoint granularity, up to the last unchanged breakpoint.
+
+## Session 3: How Models Forget Without Deleting
+
+- **Attention budget:** The intuition that attention weights sum to 1, so every added token competes with existing ones for a share.
+- **Attention dilution:** A rule or fact receiving a smaller share of attention as context grows, without being removed.
+- **Distractor:** Context content that *resembles* the relevant information and therefore draws attention away from it. Similar text is far more harmful than unrelated text.
+- **Lost in the middle:** The U-shaped recall curve. Information at the start and end of a long context is used best, and information in the middle worst.
+- **Primacy / recency bias:** The tendency to weight content near the start (primacy) and near the end (recency) of the context more heavily.
+- **Attention sink:** Early tokens that attention heads use as a default "parking spot," which helps give the start of the context outsized attention.
+- **Advertised vs. effective context:** The maximum tokens a model *accepts* versus the length over which it *reliably uses* information. Effective is smaller.
+- **Needle-in-a-haystack test:** A benchmark that plants one fact in a long context and asks for it back. It's easy compared with tasks that combine several scattered facts.
+- **In-context learning:** The model's ability to pick up and continue patterns shown in its context, without any weight change.
+- **Drift:** Gradual departure from an instruction. It becomes self-reinforcing when uncorrected outputs remain in the transcript as examples.
+- **Reminder injection:** A harness restating key rules late in the context, near the generation point, to exploit recency.

@@ -107,3 +107,41 @@ On turn 20 of a long conversation, your harness has two choices:
 - **(B)** append a one-line note to the very *end*.
 
 Using **causal masking** and **what each token's keys and values depend on**, explain which change forces more recomputation on the next call, and *why*. Then: if prompt caching were in use, what happens to the cached prefix in each case?
+
+---
+
+# Session 3: How Models Forget Without Deleting
+
+**Recap:** The context is an append-only log. The model reads all of it on every call, with cached keys and values making that cheap. **Today:** if nothing is ever deleted, why did your rules fade?
+
+Here's the paradox. In a 150-turn conversation, your rule from turn 1 is *still in the window*, byte for byte. The model can see it. It just stops *acting* on it. There are four separate mechanisms behind that, and they add up.
+
+**1. The attention budget.**
+Remember: attention weights in each head sum to 1. Every token added is another candidate competing for a share. A rule that took 5% of a head's attention in a short conversation might get 0.2% in a long one. Nothing was removed. It's just quieter.
+
+What hurts most isn't *more* text. It's *similar* text. Fifty paragraphs that look a bit like your rule pull attention away much more than fifty paragraphs about something unrelated. Engineers call these **distractors**.
+
+*(Simplification flag: some heads stay very sharp at long range, so this isn't a strict zero-sum budget. It's still the right intuition.)*
+
+**2. Position matters: lost in the middle.**
+Models don't attend evenly across the window. Researchers who planted a fact at different depths in long contexts found a U-shaped curve: recall is best near the **start** and the **end**, and worst in the **middle**. The end benefits from recency. The start benefits from training habits and from **attention sinks**, early tokens that heads use as a default parking spot. Your rule, mentioned in passing in turn 40, sits in the trough.
+
+**3. Advertised versus effective context.**
+A model may *accept* a million tokens, but it was trained mostly on much shorter sequences, and the positional encoding becomes less reliable at distances it rarely saw in training. "Needle in a haystack" tests, where you retrieve one planted sentence, look impressive. Tasks that require *combining* several facts spread across a long context degrade much earlier. The usable window is smaller than the one on the box.
+
+**4. The transcript teaches by example.** This is the subtle one, and it's probably the real culprit in your experience.
+Models are extraordinarily good at **in-context learning**: they continue whatever pattern the document shows. Your rule is one abstract instruction. The transcript is 150 *concrete examples* of how this conversation goes. If a few replies drifted from the rule and nobody objected, those replies now count as evidence of "how we do things here." Each drift makes the next one more likely. The conversation becomes its own prompt, and when an instruction conflicts with examples, the examples usually win.
+
+**And yes, sometimes it really was deleted.** Harnesses do trim or summarize old turns when they run out of room. That's genuine forgetting, and it's Session 4's subject. Always check that first, because the fix is completely different.
+
+## So what?
+
+This gives you a debugging checklist and a set of countermeasures. **Placement:** put critical rules at the start *and* restate them near the end. That's why harnesses like Claude Code inject short reminders late in the context. **Hygiene:** fewer distractors, and less stale tool output. **Correct drift immediately**, before bad examples pile up. **Start fresh** when the history has become mostly noise. "The model forgot" is rarely one bug. Usually it's dilution, position, and self-reinforcing examples together.
+
+## Check-in question
+
+Your system prompt says *"Always use British spelling."* By turn 150 the model writes "color" and "optimize." The transcript contains:
+- a 20,000-token pasted American technical document around turn 70
+- about a dozen earlier replies that already slipped into American spelling, with no correction
+
+**Identify which of the four mechanisms are at work, and point to the specific evidence for each.** Then propose **two fixes that target *different* mechanisms**, and say which mechanism each one addresses.
