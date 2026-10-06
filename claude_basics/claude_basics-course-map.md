@@ -44,4 +44,4 @@ Read a product's safety layers from the outside (the field-guide tells in the th
 
 ---
 
-*Course complete. Standing offer: follow-on seminars on the black-boxed threads — training mechanics, and the specific agentic defenses (sandboxing, privilege separation, input/output segregation).*
+*Course complete. Standing offer: follow-on seminars on the black-boxed threads — training mechanics (issue #2), and the specific agentic defenses: sandboxing, privilege separation, input/output segregation (issue #6).*
