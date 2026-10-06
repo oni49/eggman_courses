@@ -111,11 +111,28 @@ The adversarial surface of deployed LLMs.
 
 Terms introduced as definitions or touched briefly, but never given full treatment. Candidates for dedicated sessions if the student wants them:
 
-- ✦ **Transformer internals** — residual connections, layer normalisation, feed-forward layers. Defined in the glossary, mechanism not unpacked.
-- ✦ **Scaling laws** — named in Session 4, but the empirical data/compute/parameter relationship was not explored in depth.
-- ✦ **The data pipeline** — how the raw internet gets cleaned, deduplicated, and filtered before pre-training. Mentioned, not covered.
-- ✦ **Tokenisation proper** — we treated "tokens" and "words" loosely; subword tokenisation (BPE) is its own topic.
-- ✦ **Positional encoding** — how the Transformer knows word *order*, given it processes everything simultaneously. A genuine gap worth closing.
+- ✦ **Transformer internals** — residual connections, layer normalisation, feed-forward layers. Defined in the glossary, mechanism not unpacked. *(Tracked: #8. Student declined this dig-in once in Session 3 — offer, don't push.)*
+- ✦ **Scaling laws** — named in Session 4, but the empirical data/compute/parameter relationship was not explored in depth. *(Tracked: #3.)*
+- ✦ **The data pipeline** — how the raw internet gets cleaned, deduplicated, and filtered before pre-training. Mentioned, not covered. *(Tracked: #3.)*
+- ✦ **Tokenisation proper** — we treated "tokens" and "words" loosely; subword tokenisation (BPE) is its own topic. *(Tracked: #8.)*
+- ✦ **Positional encoding** — how the Transformer knows word *order*, given it processes everything simultaneously. A genuine gap worth closing. *(Tracked: #8.)*
+
+Session 9 is **on hold** at the student's request (06 Oct 2026). Do not auto-start new material.
+
+---
+
+## Open Offers (post-course)
+
+- **Reconstruct Session 2 as a clean standalone lecture** — the contextual-embeddings "three points" breakdown, the King→Queen *parallel-edges* correction, and the relationship-vector → Q/K/V derivation were cut from `llm_basics-lessons.md` as answer-discussion. *(Tracked: #5.)*
+- **Regenerate `llm_basics-lessons.md` with stage directions preserved** — the current version strips in-character business (marker-capping, coffee) where it was interleaved mid-prose. Offer stands if the student prefers the "as performed" feel.
+
+---
+
+## Course Notes
+
+- **Through-line:** the form/meaning gap is the whole course — a capability limit in Session 1, an attack surface in Session 8.
+- **Student calibration (do not re-ask):** reasons unusually well from first principles — repeatedly re-derived mechanisms (attention Q/K/V, parallel-edge embeddings, the reward-hacking and injection-defense syntheses) ahead of being taught them. Teach *up*; don't over-explain. Define every acronym on first use (standing request from Session 1).
+- **Track position:** course 1 of the Eggman track — LLM & GPT (`llm_basics/`) → Claude Capability & Safety (`claude_basics/`) → LLM Automation (`automation/`).
 
 ---
 
