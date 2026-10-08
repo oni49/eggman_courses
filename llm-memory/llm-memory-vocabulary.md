@@ -54,3 +54,18 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **In-context learning:** The model's ability to pick up and continue patterns shown in its context, without any weight change.
 - **Drift:** Gradual departure from an instruction. It becomes self-reinforcing when uncorrected outputs remain in the transcript as examples.
 - **Reminder injection:** A harness restating key rules late in the context, near the generation point, to exploit recency.
+
+## Session 4: Context Management
+
+- **Context engineering:** Deciding, on every call, what goes into the window. Treats context as a scarce budget.
+- **Pinned region:** Content the harness never trims (tools, system prompt), kept at the stable, cached start of the window.
+- **Managed region:** The middle of the context (conversation history, tool output) where trimming strategies apply.
+- **Truncation / sliding window:** Dropping the oldest turns past a limit. It's cheap and doesn't care what it drops.
+- **Summarization / compaction:** Replacing old history with a model-written summary. Lossy, and a model decides what counted as detail.
+- **Auto-compact:** Claude Code automatically compacting the conversation as the window approaches its limit.
+- **`/compact` vs. `/clear`:** Claude Code commands. `/compact` summarizes history (lossy), and `/clear` discards it entirely (full truncation).
+- **Tool-result pruning:** Replacing bulky, stale tool output with a short stub that records the action happened. It's recoverable by re-running the tool.
+- **Offloading:** Writing state (decisions, progress, to-dos) to external storage and reading it back on demand.
+- **Cache tax:** The cache miss that every history edit causes from that point onward. Do edits in rare, large batches.
+- **Durable vs. conversational state:** Information that must survive compaction (put it in pinned or external memory) versus information that can fade with the chat.
+- **Staleness:** Old context that no longer matches reality, such as a file read from before the file was edited. It's worse than no context.

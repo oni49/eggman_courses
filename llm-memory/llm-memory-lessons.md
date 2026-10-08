@@ -145,3 +145,46 @@ Your system prompt says *"Always use British spelling."* By turn 150 the model w
 - about a dozen earlier replies that already slipped into American spelling, with no correction
 
 **Identify which of the four mechanisms are at work, and point to the specific evidence for each.** Then propose **two fixes that target *different* mechanisms**, and say which mechanism each one addresses.
+
+---
+
+# Session 4: Context Management
+
+**Recap:** Rules fade without being deleted, through dilution, position effects, and the transcript teaching by example. **Today:** the harness starts deleting things *deliberately*, and we look at how to do that without damaging the conversation.
+
+**The harness is a budget allocator.** On every call it has to answer one question: *of everything this conversation has ever produced, what goes into the window this time?* The field has started calling this **context engineering**. That's a grand name for an old problem. You have a scarce, expensive resource, and every token in it takes attention away from every other token.
+
+**The layout comes first.** The previous sessions give the standard shape:
+
+```
+[ tools + system prompt ]  [ conversation history ]  [ latest turn + reminders ]
+   stable, pinned, cached        managed region            volatile, hot
+```
+
+The stable prefix is **pinned**, meaning it's never trimmed, and it's cached. Everything interesting happens in the middle.
+
+**Four strategies for the middle, from bluntest to cleverest:**
+
+**1. Truncation (sliding window).** Drop the oldest turns once you hit a limit. It's cheap and predictable, and it doesn't care what it throws away. The decision from turn 12 that explained *why* you chose Postgres goes off the edge just like small talk does. The usual safeguard is that only the conversation slides. The system prompt stays pinned.
+
+**2. Summarization (compaction).** Ask a model to rewrite the old history as a short summary, then replace the history with that summary. Claude Code does this automatically as the window fills, and on demand with `/compact`. It keeps the *gist* and discards *detail*, and **a model decides what counted as detail**. It's a JPEG of your conversation: fine at a glance, and full of artifacts when you zoom in. If Claude seems to forget a specific detail after compaction, it probably isn't attention at all. The detail just didn't make it into the summary.
+
+**3. Pruning tool results.** In agent work, most of the bulk isn't conversation. It's *tool output*: file contents, logs, search results. A 3,000-line file read 40 turns ago is pure distractor now. Pruning replaces it with a stub like "[read config.py: 3,000 lines]" and keeps the *fact* that the read happened. If needed, the model can read the file again. This is lossless in a useful sense: the information still exists outside the window, and you can get it back.
+
+**4. Offloading.** Have the model write important state, such as decisions, progress, and to-do lists, into files *outside* the window, and read them back when needed. That turns contextual memory into external memory, which is Session 5's territory.
+
+**The cache tax.** Every one of these strategies *edits the history*. By Session 2's prefix rule, every edit is a cache miss from that point onward. So well-built harnesses don't trim a little every turn. They let context accumulate, cache-friendly, and then compact in one large step when a threshold is reached. One cache miss on a much smaller context, then cheap appends again. It's the same tradeoff as log compaction in a database: let the log grow, then occasionally merge it into a compact form.
+
+## So what?
+
+Decide what's **durable** and what's **conversational**. In Claude Code, a decision you typed in chat lasts only as long as it survives compaction. The same decision written in **CLAUDE.md** is loaded fresh into the pinned region, so it survives. More on exactly how in Session 6. And `/clear` versus `/compact` isn't a matter of taste. One is truncation of everything, the other is lossy summarization, and you should choose deliberately.
+
+## Check-in question
+
+A Claude Code session is at **180K tokens** of a **200K** window. The context contains:
+- the system prompt and tool definitions (about 15K)
+- in turn 12, your decision: *"Use Postgres, not MySQL, because we need JSONB."*
+- **60 file-read results** totalling about 120K tokens
+- the **last 10 turns** of active debugging (about 30K)
+
+**Design a policy:** which strategy (truncate, summarize, prune, offload, or leave alone) do you apply to *each* of the four regions, and what's the specific risk of each choice? Then: **where does the cache miss happen**, and why does it make sense to do all of this in **one step** rather than a little each turn?

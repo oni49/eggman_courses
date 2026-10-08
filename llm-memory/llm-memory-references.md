@@ -20,3 +20,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Verify:* Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." *Transactions of the ACL*, 2024 (arXiv 2307.03172). The source of the U-shaped recall curve.
 - *Go deeper:* Hsieh, C.-P. et al. "RULER: What's the Real Context Size of Your Long-Context Language Models?" COLM 2024 (arXiv 2404.06654). Shows effective context falling well short of advertised context once tasks go beyond single-needle retrieval.
 - *Go deeper:* Xiao, G. et al. "Efficient Streaming Language Models with Attention Sinks." ICLR 2024 (arXiv 2309.17453). Introduces attention sinks, the reason the first tokens soak up disproportionate attention.
+
+## Session 4: Context Management
+
+- *Verify:* Anthropic, Claude Code documentation, "Manage Claude's memory" (CLAUDE.md files) and the slash-commands reference (`/compact`, `/clear`). Confirms how project memory is loaded and how compaction is triggered.
+- *Go deeper:* Anthropic Engineering blog, "Effective context engineering for AI agents," 2025. Covers the attention budget, compaction, structured note-taking, and tool-result clearing from a practitioner's view. *(Title and date from training knowledge, so verify before citing.)*
+- *Go deeper:* Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv 2310.08560, 2023. Frames context management as virtual memory: paging between a small "main memory" window and external storage.

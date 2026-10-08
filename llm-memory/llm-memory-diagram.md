@@ -95,3 +95,34 @@ flowchart LR
 - **Position:** the start and end are hot and the middle is cold. The *effective* window is smaller than the advertised one.
 - **Feedback loop:** each reply is appended and becomes an example for the next. Correct drift early, or edit it out of the history (which costs a cache miss from that point, per Layer 2).
 - **Debugging order:** first ask whether the harness deleted it (Layer 4). Then ask whether it was diluted, badly placed, or outvoted by examples.
+
+## Layer 4: Context management, where the harness deletes on purpose (Session 4)
+
+```mermaid
+flowchart LR
+    subgraph WIN["Context window, before compaction (~180K / 200K)"]
+        direction LR
+        PIN["📌 PINNED<br/>tools + system prompt<br/>(+ CLAUDE.md, Layer 6)<br/>never trimmed · cached"]
+        MID["MANAGED REGION<br/>old turns · decisions ·<br/>bulky tool output"]
+        HOT["🔥 RECENT<br/>last N turns<br/>kept verbatim"]
+        PIN --- MID --- HOT
+    end
+
+    MID -->|"1 truncate: drop oldest<br/>(blind to importance)"| GONE["🗑️ gone"]
+    MID -->|"2 summarize / compact<br/>(lossy, model chooses detail)"| SUM["summary block"]
+    MID -->|"3 prune tool results<br/>(stub, re-fetchable)"| STUB["'[read config.py]' stub"]
+    MID -->|"4 offload<br/>(decisions, progress)"| EXT[("External files<br/>(Layer 5)")]
+
+    subgraph AFTER["After one compaction step (~60K)"]
+        direction LR
+        PIN2["📌 PINNED<br/>✅ cache HIT"] --- NEWMID["summary + stubs<br/>(+ pushed decisions)<br/>❌ cache MISS from here"] --- HOT2["🔥 RECENT<br/>recomputed once"]
+    end
+    SUM --> NEWMID
+    STUB --> NEWMID
+    EXT -. "push (pinned) or pull (tool)" .-> NEWMID
+```
+
+**Reading it:**
+- **The cache tax:** any edit below the pinned prefix is a cache miss from that point down. So compaction happens rarely and **in one batch**: one miss on a much smaller context, then cheap appends again.
+- **Durable state goes in pinned or external memory.** Conversational state can be allowed to fade. A decision's *reason* ("because JSONB") is exactly what summaries tend to drop.
+- **Stale context is worse than missing context.** Pruning old file reads forces fresh re-reads that match the current file.
