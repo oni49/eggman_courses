@@ -98,6 +98,8 @@ flowchart LR
 
 ## Layer 4: Context management, where the harness deletes on purpose (Session 4)
 
+![Layer 4, phone-friendly render](diagram-layer4.png)
+
 ```mermaid
 flowchart LR
     subgraph WIN["Context window, before compaction (~180K / 200K)"]
