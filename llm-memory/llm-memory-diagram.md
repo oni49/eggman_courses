@@ -128,3 +128,44 @@ flowchart LR
 - **The cache tax:** any edit below the pinned prefix is a cache miss from that point down. So compaction happens rarely and **in one batch**: one miss on a much smaller context, then cheap appends again.
 - **Durable state goes in pinned or external memory.** Conversational state can be allowed to fade. A decision's *reason* ("because JSONB") is exactly what summaries tend to drop.
 - **Stale context is worse than missing context.** Pruning old file reads forces fresh re-reads that match the current file.
+
+## Layer 5: External memory and retrieval paths (Session 5)
+
+![Layer 5, phone-friendly render](diagram-layer5.png)
+
+```mermaid
+flowchart TB
+    subgraph EXT["External memory: outside the window, usable only as tokens"]
+        direction TB
+        F[("📄 Files / notes<br/>CLAUDE.md · decision logs · memory dir<br/>exact · name-addressed")]
+        V[("🔎 Vector index (RAG)<br/>chunks → embedding model → vectors<br/>similarity search only")]
+        R[("🗂️ Raw corpus / repo<br/>searched with grep · find · read")]
+        P[("💬 Past chats<br/>summaries · extracted facts")]
+    end
+
+    subgraph H["Harness: PUSH (code decides, before the model runs)"]
+        RT{"router / always-retrieve<br/>+ query rewrite"}
+    end
+
+    subgraph WIN["Context window (tokens only)"]
+        PIN["📌 pinned: CLAUDE.md, user prefs"]
+        RET["retrieved chunk TEXT"]
+        TOOL["tool results"]
+    end
+
+    M(("Model"))
+
+    F -- "push at session start" --> PIN
+    P -- "push summary / facts" --> PIN
+    RT -- "embed query → top-k" --> V
+    V -- "chunk text, not vectors" --> RET
+    M -- "PULL: tool call<br/>(model decides, can iterate)" --> R
+    M -- "PULL: search_past_chats" --> P
+    R -- "matching lines / file text" --> TOOL
+    WIN --> M
+```
+
+**Reading it:**
+- **Push vs. pull is about *who decides*, not how much.** Classic RAG is push (harness code decides). Agentic search is pull (the model decides, and can retry after seeing a wrong result).
+- **Vectors never enter the window.** Retrieval embeddings exist only for search. The model receives the chunk's text and re-tokenizes it.
+- **Failure points:** retrieval miss (wrong chunk), chunking damage (fact separated from its heading), staleness (old index), and poisoning (retrieved text carries instructions).

@@ -69,3 +69,23 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **Cache tax:** The cache miss that every history edit causes from that point onward. Do edits in rare, large batches.
 - **Durable vs. conversational state:** Information that must survive compaction (put it in pinned or external memory) versus information that can fade with the chat.
 - **Staleness:** Old context that no longer matches reality, such as a file read from before the file was edited. It's worse than no context.
+
+## Session 5: External Memory
+
+- **External memory:** Any store outside the context window (files, databases, indexes, past chats). It is usable only after being brought in as tokens.
+- **Memory hierarchy analogy:** Window = RAM (where compute happens), external stores = disk, retrieval = page fault.
+- **File / note memory:** Exact, name-addressed stores such as CLAUDE.md, decision logs, to-do lists, and API memory directories. The best home for facts that must be exactly right.
+- **RAG (Retrieval-Augmented Generation):** Search an external corpus and insert the retrieved text into the context before generating.
+- **Chunk:** A slice of a document (typically a few hundred tokens) that is embedded and retrieved as a unit.
+- **Embedding model (retrieval):** A separate model that maps a whole chunk or query to one vector for similarity search. Not the LLM's internal token embeddings.
+- **Vector database:** A store of chunk vectors supporting nearest-neighbor search.
+- **Nearest-neighbor search / top-k:** Finding the k chunk vectors closest to the query vector.
+- **Agentic search:** The model searches iteratively with tools (`grep`, `find`, `read`), refining queries based on what it sees. This is how Claude Code explores repositories.
+- **Keyword (lexical) search:** Exact-term matching such as grep. Precise, but blind to synonyms.
+- **Hybrid search:** Combining semantic (vector) and keyword search to cover each one's blind spots.
+- **Retrieval router:** Harness logic (a rule, classifier, or small model) that decides whether to retrieve for a given message.
+- **Query rewriting:** A model call that turns a conversational follow-up into a standalone search query before retrieval.
+- **Retrieval miss:** The wrong content is retrieved. The model can't detect what it wasn't shown.
+- **Chunking damage:** Splitting a document so a fact is separated from the context that identifies it (for example, a value cut off from its heading).
+- **Index staleness:** A search index that no longer matches the source documents.
+- **Memory poisoning / indirect prompt injection:** Malicious instructions planted in a store that later get retrieved into the context.

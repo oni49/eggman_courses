@@ -26,3 +26,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Verify:* Anthropic, Claude Code documentation, "Manage Claude's memory" (CLAUDE.md files) and the slash-commands reference (`/compact`, `/clear`). Confirms how project memory is loaded and how compaction is triggered.
 - *Go deeper:* Anthropic Engineering blog, "Effective context engineering for AI agents," 2025. Covers the attention budget, compaction, structured note-taking, and tool-result clearing from a practitioner's view. *(Title and date from training knowledge, so verify before citing.)*
 - *Go deeper:* Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv 2310.08560, 2023. Frames context management as virtual memory: paging between a small "main memory" window and external storage.
+
+## Session 5: External Memory
+
+- *Foundational:* Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS 2020 (arXiv 2005.11401). The paper that named RAG.
+- *Go deeper:* Anthropic, "Introducing Contextual Retrieval," Anthropic blog/engineering post, September 2024. Directly addresses chunking damage by prepending chunk-specific context before embedding, and combines embeddings with keyword (BM25) search, which is hybrid search in practice.
+- *Verify:* Greshake, K. et al. "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection." ACM AISec 2023 (arXiv 2302.12173). The foundational demonstration that retrieved content can carry attacker instructions.

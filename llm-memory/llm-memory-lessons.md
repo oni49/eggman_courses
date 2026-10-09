@@ -188,3 +188,46 @@ A Claude Code session is at **180K tokens** of a **200K** window. The context co
 - the **last 10 turns** of active debugging (about 30K)
 
 **Design a policy:** which strategy (truncate, summarize, prune, offload, or leave alone) do you apply to *each* of the four regions, and what's the specific risk of each choice? Then: **where does the cache miss happen**, and why does it make sense to do all of this in **one step** rather than a little each turn?
+
+---
+
+# Session 5: External Memory
+
+**Recap:** Last time the harness learned to delete on purpose: truncate, summarize, prune, offload. **Today:** where offloaded information goes, and how it gets back into the window.
+
+**The one rule.** External memory is anything outside the window: files, databases, search indexes, past chats. The model can't use any of it *directly*. It has to come back in as tokens, either **pushed** by the harness or **pulled** by the model through a tool. External memory is really a set of storage systems with a gateway into the context.
+
+The analogy is the memory hierarchy. The window is RAM: fast, small, and the only place computation happens. External stores are disk. Retrieval is a page fault. The twist is that the "operating system" handling the fault is sometimes the harness and sometimes the model itself.
+
+**Family 1: Files and notes.** These are exact, structured, and addressed by name. Examples are CLAUDE.md, decision logs, to-do lists, and the memory directories some APIs now give models to read and write. Retrieval is trivial: *open the file*. This is the right home for facts that must be **exactly right**, such as decisions, preferences, and conventions. It's simple, inspectable, and editable with a text editor. Engineers underrate it because it isn't exciting.
+
+**Family 2: Semantic search (RAG).** This is for corpora too big to push, like 5,000 pages of documentation. **Retrieval-Augmented Generation** works like this:
+
+1. Split the documents into **chunks** of a few hundred tokens each.
+2. Run each chunk through a separate **embedding model**, which turns it into a single vector. Text with similar meaning ends up with nearby vectors.
+3. Store the vectors in a **vector database**.
+4. At question time, embed the question, find the nearest chunk vectors, and **paste those chunks' text** into the context.
+
+Now the correction I owe you from our first conversation. You guessed memory might be fed in "through embeddings first." It isn't. **The model never sees those vectors.** They exist only to *search*. What enters the context is plain text, which the model then re-tokenizes and embeds with its *own* embedding table (Session 2). The two kinds of embedding have the same name and do completely different jobs.
+
+**Family 3: Agentic search.** Give the model `grep`, `find`, and `read`, and let it search over several steps: look, read, refine, look again. That's slower, but it adapts in a way a single vector lookup can't. Claude Code works this way. It doesn't build a vector index of your repository. It searches the repository the way you would.
+
+**Product "memory"** (ChatGPT remembering your dog, Claude recalling past chats) combines these: extracted facts or summaries are pushed in at the start, plus a pull tool such as "search past conversations."
+
+**How it fails:**
+- **Retrieval miss.** The wrong chunk comes back. The model can't know what it wasn't shown, so it answers confidently from whatever *was* retrieved.
+- **Chunking damage.** A key sentence is split from the context that gave it meaning.
+- **Staleness.** The index is from last month and the docs changed yesterday.
+- **Poisoning.** Retrieved text is *input*, and anyone who can write to the store can write instructions into your context.
+
+## So what?
+
+**Retrieval quality puts a ceiling on answer quality.** When a RAG system gives a wrong answer, look at the *retrieval* before blaming the model. Usually the model reasoned correctly from the wrong page. When you design a system, match the store to the need: exact and durable facts go in files and get pushed, large corpora go behind search and get pulled, and anything that changes needs a refresh plan.
+
+## Check-in question
+
+You're building an internal support assistant. It needs (a) **each user's preferences** ("terse answers, uses Python") and (b) **5,000 pages of API docs**.
+
+1. For (a) and (b), choose a store and say **push or pull**, with a one-line reason for each.
+2. A user asks *"What's the timeout for the Payments API?"* Retrieval returns chunks about the **Orders** API timeout, and the model confidently answers with that number. **Which component failed, and why couldn't the model catch it?**
+3. True or false, with one sentence: *"The model reads the retrieved chunks as embedding vectors."*
