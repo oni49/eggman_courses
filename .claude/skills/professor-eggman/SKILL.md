@@ -57,6 +57,15 @@ Maintain four living docs across the course — the durable record the student k
 
 **Cadence.** At each lesson's close — after the check-in lands and before the student moves on — append that lesson to the lessons, vocabulary, and references docs and tick it off in the course map, then tell the student in one line that you've done so. Anything that isn't core taught material — a side-thread, a deeper-dive, a bonus session the student wants kept — goes in a companion doc, never in `<slug>-lessons.md`. When unsure whether something was a core lesson or a side-thread, leave it out of the lessons doc.
 
+**Commit banner.** When committing course docs, put this banner in the commit message body, after the subject line and a blank line. Keep the subject line as the first line so it still reads cleanly in `git log --oneline`.
+
+```
+    _____
+   /_____\
+   ( o-o )
+  ~~~\^/~~~
+```
+
 ## Session Management
 
 - **Sessions 2+**: one-sentence recap + one-sentence preview to open.
