@@ -32,3 +32,34 @@ Off-curriculum side threads the student asked to keep. These are not part of the
 **Consequences:**
 - **Tool results are untrusted input.** They enter the context like retrieved chunks, so the Session 5 poisoning risk applies to every tool.
 - **Server-side tools** (for example, provider-run web search) follow the same pattern. The provider's infrastructure acts as the harness for that step.
+
+### Data flow: harness, model, and semantic search
+
+![Push vs. pull data flow](diagram-push-pull-flow.png)
+
+```mermaid
+sequenceDiagram
+    participant H as Harness
+    participant M as Model
+    participant S as Semantic Search
+
+    rect rgb(232,238,252)
+    Note over H,S: PUSH: harness decides
+    H->>S: embed question, top-k?
+    S-->>H: chunk text
+    H->>M: transcript + chunks
+    M-->>H: answer
+    end
+
+    rect rgb(236,248,239)
+    Note over H,S: PULL: model decides
+    H->>M: transcript + tool definitions
+    M-->>H: tool_use: search("...")
+    H->>S: run search
+    S-->>H: chunk text
+    H->>M: transcript + tool_result
+    M-->>H: answer (or another tool_use)
+    end
+```
+
+The model never talks to the search service directly. Every arrow into or out of the model goes through the harness.
