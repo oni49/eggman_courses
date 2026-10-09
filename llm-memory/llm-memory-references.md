@@ -32,3 +32,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Foundational:* Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS 2020 (arXiv 2005.11401). The paper that named RAG.
 - *Go deeper:* Anthropic, "Introducing Contextual Retrieval," Anthropic blog/engineering post, September 2024. Directly addresses chunking damage by prepending chunk-specific context before embedding, and combines embeddings with keyword (BM25) search, which is hybrid search in practice.
 - *Verify:* Greshake, K. et al. "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection." ACM AISec 2023 (arXiv 2302.12173). The foundational demonstration that retrieved content can carry attacker instructions.
+
+## Session 6: Claude's Memory Stack
+
+- *Verify:* Anthropic, Claude Code documentation: "Manage Claude's memory" (CLAUDE.md hierarchy and imports), "Agent Skills," and "Subagents." Confirms load timing and the separate context window for subagents. The exact injection details change between releases, so check the current pages.
+- *Go deeper:* Anthropic Engineering blog, "Equipping agents for the real world with Agent Skills," 2025. Explains progressive disclosure: metadata first, body on demand, supporting files as needed. *(Title and date from training knowledge, so verify.)*
+- *Go deeper:* Anthropic Engineering blog, "How we built our multi-agent research system," 2025. Subagents in practice: separate contexts and condensed results, plus the token-cost tradeoffs.

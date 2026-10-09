@@ -175,3 +175,47 @@ flowchart TB
 - **Push vs. pull is about *who decides*, not how much.** Classic RAG is push (harness code decides). Agentic search is pull (the model decides, and can retry after seeing a wrong result).
 - **Vectors never enter the window.** Retrieval embeddings exist only for search. The model receives the chunk's text and re-tokenizes it.
 - **Failure points:** retrieval miss (wrong chunk), chunking damage (fact separated from its heading), staleness (old index), and poisoning (retrieved text carries instructions).
+
+## Layer 6: Claude Code's full memory stack, the capstone (Session 6)
+
+![Layer 6, phone-friendly render](diagram-layer6.png)
+
+```mermaid
+flowchart TB
+    subgraph DISK["On disk / servers (external memory)"]
+        CM[("CLAUDE.md files<br/>user · project · parents · nested")]
+        SK[("Skills<br/>.claude/skills/*/SKILL.md")]
+        AG[("Subagent definitions<br/>.claude/agents/*.md")]
+        MCP[("MCP servers<br/>tools + data")]
+    end
+
+    subgraph MAIN["Main context window (top → bottom)"]
+        direction TB
+        SP["📌 System prompt · push · pinned"]
+        TD["📌 Tool definitions (some deferred: name only) · push · pinned"]
+        CMW["📌 CLAUDE.md contents · push · reloaded after /compact"]
+        IDX["📌 Skill + subagent INDEX (descriptions) · push · every call"]
+        CONV["Conversation + tool results<br/>incl. skill BODIES once invoked (pull)<br/>➜ diluted / summarized like any transcript"]
+        REM["🔥 System reminders · push · near the end"]
+        SP --> TD --> CMW --> IDX --> CONV --> REM
+    end
+
+    subgraph SUB["Subagent window (fresh, separate, discarded after)"]
+        SB["agent instructions + task<br/>+ its own skill pulls + noisy work/logs"]
+    end
+
+    CM -- "session start" --> CMW
+    SK -- "descriptions" --> IDX
+    AG -- "descriptions" --> IDX
+    MCP -- "tool schemas" --> TD
+    CONV -- "Skill() tool call: pull body" --> SK
+    CONV -- "Agent() tool call" --> SB
+    AG -. "instructions" .-> SB
+    SB -- "final REPORT only" --> CONV
+```
+
+**Reading it:**
+- **Everything in the window is resent on every call.** What matters is *when* it enters, *who* decides (push or pull), and whether it *survives compaction*.
+- **Progressive disclosure:** indexes are pushed on every call, and bodies are pulled on demand.
+- **Lifetimes:** pinned layers persist. Skill bodies fade like transcript. Subagent windows are discarded, and only their report survives.
+- **Skill = what to know. Subagent = where to work.** They combine: a subagent can pull a skill into *its* window.

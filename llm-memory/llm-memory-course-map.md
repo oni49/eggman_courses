@@ -21,7 +21,7 @@ BSc CS, 15 years out. Has read *The Illustrated Transformer*. Already holds thes
 | 3 | **How Models Forget Without Deleting.** Attention dilution, lost-in-the-middle, positional limits, why your rules fade | Mechanisms | Attention "hot" and "cold" zones | ✅ |
 | 4 | **Context Management.** System prompts, truncation, summarization/compaction, prompt caching | Mechanisms | System prompt, cache boundary, compaction | ✅ |
 | 5 | **External Memory.** Embeddings, retrieval-augmented generation, memory files and tools | Application | Out-of-window stores and retrieval paths | ✅ |
-| 6 | **Claude's Memory Stack.** When CLAUDE.md, skills, agent files and tool definitions enter context, and what is resent every turn | Application | Full Claude Code assembly (capstone) | ☐ |
+| 6 | **Claude's Memory Stack.** When CLAUDE.md, skills, agent files and tool definitions enter context, and what is resent every turn | Application | Full Claude Code assembly (capstone) | ✅ |
 | 7 | **Thinking in Tokens.** Chain of thought: why generated text *is* computation | Mechanisms | Thinking blocks in the stream | ☐ |
 | 8 | **Trained Reasoners.** Reinforcement-learned reasoning, thinking budgets, interleaved thinking with tools | Frontiers | Thinking across tool calls, and what is dropped between turns | ☐ |
 | 9 | **Long-Horizon Agents.** Subagents, notes, compaction loops | Application | Subagent contexts as separate windows | ☐ |

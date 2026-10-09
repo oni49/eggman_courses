@@ -89,3 +89,20 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **Chunking damage:** Splitting a document so a fact is separated from the context that identifies it (for example, a value cut off from its heading).
 - **Index staleness:** A search index that no longer matches the source documents.
 - **Memory poisoning / indirect prompt injection:** Malicious instructions planted in a store that later get retrieved into the context.
+
+## Session 6: Claude's Memory Stack
+
+- **System prompt (harness):** The harness's own instructions, placed first in every call. Pinned and cached.
+- **Tool definitions:** Name, description, and argument schema for each tool, pushed near the top of every call. Includes MCP tools.
+- **MCP (Model Context Protocol):** A standard way for external servers to expose tools and data to a harness.
+- **CLAUDE.md:** Project, user, and parent-directory instruction files that Claude Code pushes at session start and reloads after compaction. The durable layer.
+- **Nested CLAUDE.md:** A CLAUDE.md in a subfolder, loaded when Claude works with files in that subtree.
+- **Skill index:** The name and description of every available skill, pushed into every call. It's how the model knows when a skill applies.
+- **Skill body:** The full SKILL.md, pulled into the window only when invoked. It's ordinary transcript after that, so it can be diluted and summarized.
+- **Progressive disclosure:** Push a cheap index on every call, and pull the expensive body only when needed. Used for skills, deferred tools, and subagents.
+- **Deferred tool:** A tool listed by name only, whose full schema is fetched on demand.
+- **Subagent:** A separate model run with its own fresh context window, launched by a tool call. Only its final report returns to the caller, and its window is then discarded.
+- **Subagent definition:** A file (for example in `.claude/agents/`) giving a subagent's description (pushed to the main context) and instructions (used only inside the subagent).
+- **System reminder:** Harness-injected text near the end of the context (dates, to-dos, nudges) that exploits recency.
+- **Skill vs. subagent:** A skill answers "what do I need to know?" A subagent answers "where should the work happen?" They combine freely.
+- **Report-time vs. compaction-time loss:** A subagent loses detail immediately and by design (whatever the report omits). A skill in the main window loses detail later and by accident (whatever compaction omits).

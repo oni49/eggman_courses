@@ -231,3 +231,52 @@ You're building an internal support assistant. It needs (a) **each user's prefer
 1. For (a) and (b), choose a store and say **push or pull**, with a one-line reason for each.
 2. A user asks *"What's the timeout for the Payments API?"* Retrieval returns chunks about the **Orders** API timeout, and the model confidently answers with that number. **Which component failed, and why couldn't the model catch it?**
 3. True or false, with one sentence: *"The model reads the retrieved chunks as embedding vectors."*
+
+---
+
+# Session 6: Claude's Memory Stack
+
+*(Delivered twice. This is the second delivery, given at the student's request to move it to the bottom of the reading window, and it's the version the check-in was answered against.)*
+
+**Recap:** External memory reaches the model only as tokens, pushed by the harness or pulled by the model, and the model never actually gets to *touch* anything. **Today:** the capstone you asked for. We take apart Claude Code's memory, with me as the specimen. I'll try to hold still.
+
+**First, a misconception to drop.** You asked whether skills and agent files are "resent each prompt." Session 1 already answered that: *everything* in the window is resent on every call. Statelessness means rereading your entire diary each morning, at length. So "is it resent?" is the wrong question. The right ones are:
+
+1. **When does it enter?**
+2. **Who puts it there,** the harness (push) or the model (pull)?
+3. **Does it survive compaction?**
+
+**The stack, from the top of the window down:**
+
+| Layer | Enters | Push / pull | Survives `/compact`? |
+|---|---|---|---|
+| **System prompt** (Anthropic's harness instructions) | Every session, first | Push | Yes: pinned |
+| **Tool definitions**, including MCP tools | Session start | Push | Yes: pinned |
+| **CLAUDE.md** (user, project, parent directories) | Session start | Push | Yes: reloaded |
+| **Skill *index*** (name + description per skill) | Session start | Push | Yes |
+| **Skill *body*** (full SKILL.md) | When invoked | **Pull** | No: it's ordinary transcript, so it gets summarized |
+| **Nested CLAUDE.md** in subfolders | When I touch files there | Push, triggered by my reads | Varies |
+| **Subagent definitions** | Index at start, body only inside the subagent | Index pushed, body runs in a **separate window** | Index yes |
+| **System reminders** (dates, to-dos, nudges) | Mid-conversation, near the end | Push | Not needed: reinjected |
+
+*(Simplification flag: the exact injection points change between releases. Memorize the pattern, not the positions. The positions will be different by the time you've finished memorizing them.)*
+
+**The pattern underneath is progressive disclosure.** Push a cheap *index* on every call, and pull the expensive *body* only when it's needed. It's a table of contents in place of the whole library, a trick librarians have used for a couple of millennia. This conversation demonstrates it:
+
+- When you typed "Eggman, teach me," the skill's *description* was already in my context, and that's how I recognized the request. Its *body* arrived only when I invoked it. That's the full answer to your earlier "where did you pull your skill from?", delivered five sessions late, which in academia counts as prompt.
+- My context lists some tools as **deferred**: name only, with the full schema fetched on demand. The same trick, applied to tools.
+- Subagents go further. Their instructions never enter *my* window at all. They work in a fresh context and hand back a summary, like a consultant who leaves a report and none of the mess.
+
+**The consequence engineers miss.** A skill's **description** is pushed into every call, so it's permanent. Its **body** is temporary: one message in the transcript, subject to dilution (Session 3) and summarization (Session 4) like any other text. You've seen the evidence. My personality instructions arrived once, sank into the middle of the window, and my sarcasm went with them. CLAUDE.md, on the other hand, is reloaded every session. It's the durable layer. Skills fade.
+
+## So what?
+
+Match each piece of guidance to the layer whose lifetime fits it. **Always-on rules** go in CLAUDE.md, and they should be short, because they're pushed into every call. **Sometimes procedures** go in skills, with a description sharp enough that the right request triggers them. **Messy, self-contained jobs** go to subagents, so their clutter never reaches your main window. And any skill that needs to run for a long time, such as one that runs a semester-long seminar, needs a refresh plan, or you get a professor who slowly turns into a dull textbook.
+
+## Check-in question
+
+You have a **3,000-word deployment runbook**. You deploy about once a week, and most sessions have nothing to do with deployment.
+
+1. Compare putting it in **CLAUDE.md**, making it a **skill**, and making it a **subagent**. For each, give the **token cost on a session that never deploys** and **what happens to it after `/compact`** in a session that did deploy.
+2. Pick one and justify it.
+3. In one sentence: why is the skill's **description** the most important line in the whole skill?
