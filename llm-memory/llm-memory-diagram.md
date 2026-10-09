@@ -219,3 +219,26 @@ flowchart TB
 - **Progressive disclosure:** indexes are pushed on every call, and bodies are pulled on demand.
 - **Lifetimes:** pinned layers persist. Skill bodies fade like transcript. Subagent windows are discarded, and only their report survives.
 - **Skill = what to know. Subagent = where to work.** They combine: a subagent can pull a skill into *its* window.
+
+## Layer 7: Thinking in tokens, reasoning as working memory (Session 7)
+
+![Layer 7, phone-friendly render](diagram-layer7.png)
+
+```mermaid
+flowchart LR
+    subgraph B["Schema B: reasoning FIRST (computation)"]
+        direction LR
+        Q1["question"] --> R1["step 1"] --> R2["step 2<br/>reads step 1"] --> R3["step n<br/>reads all prior"] --> V1["verdict<br/>reads the whole trail"]
+    end
+    subgraph A["Schema A: verdict FIRST (public relations)"]
+        direction LR
+        Q2["question"] --> V2["verdict<br/>ONE pass of compute"] --> E2["rationale<br/>can't influence verdict<br/>(causal mask)"]
+    end
+    B -. "all of it stays in the window" .-> W[("Context window<br/>reasoning = working memory<br/>budget · dilution · cache · compaction")]
+```
+
+**Reading it:**
+- **Fixed compute per token:** one pass up a fixed-depth stack. Hard problems need more serial steps than that.
+- **Generated tokens are a scratchpad.** Each later pass reads earlier results, so more tokens means more serial computation.
+- **Causal masking makes order decisive.** Reasoning before the answer is computation. Reasoning after is post-hoc.
+- **Thinking is memory.** Reasoning tokens occupy the window, and a long wrong chain outweighs a short later correction.

@@ -38,3 +38,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Verify:* Anthropic, Claude Code documentation: "Manage Claude's memory" (CLAUDE.md hierarchy and imports), "Agent Skills," and "Subagents." Confirms load timing and the separate context window for subagents. The exact injection details change between releases, so check the current pages.
 - *Go deeper:* Anthropic Engineering blog, "Equipping agents for the real world with Agent Skills," 2025. Explains progressive disclosure: metadata first, body on demand, supporting files as needed. *(Title and date from training knowledge, so verify.)*
 - *Go deeper:* Anthropic Engineering blog, "How we built our multi-agent research system," 2025. Subagents in practice: separate contexts and condensed results, plus the token-cost tradeoffs.
+
+## Session 7: Thinking in Tokens
+
+- *Foundational:* Wei, J. et al. "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models." NeurIPS 2022 (arXiv 2201.11903). The paper that named chain-of-thought prompting.
+- *Verify:* Kojima, T. et al. "Large Language Models are Zero-Shot Reasoners." NeurIPS 2022 (arXiv 2205.11916). The "Let's think step by step" result.
+- *Go deeper:* Merrill, W. & Sabharwal, A. "The Expressive Power of Transformers with Chain of Thought." ICLR 2024 (arXiv 2310.07923). The theory behind "tokens are computation": intermediate steps provably extend what a fixed-depth transformer can compute.

@@ -280,3 +280,42 @@ You have a **3,000-word deployment runbook**. You deploy about once a week, and 
 1. Compare putting it in **CLAUDE.md**, making it a **skill**, and making it a **subagent**. For each, give the **token cost on a session that never deploys** and **what happens to it after `/compact`** in a session that did deploy.
 2. Pick one and justify it.
 3. In one sentence: why is the skill's **description** the most important line in the whole skill?
+
+---
+
+# Session 7: Thinking in Tokens
+
+**Recap:** The memory half is done. You now know what enters my window, when, on whose decision, and how it decays. **Today:** the reasoning half, and the surprising fact that ties the two together. **Thinking *is* memory.**
+
+**First, a correction to an idea you brought to the first session.** You described chain of thought as "a pass at prompt improvement before use." That's close, and you also suspected it wasn't quite right, so give yourself credit. It isn't polishing the question. It's **buying more computation**.
+
+**The constraint: fixed compute per token.**
+Recall Session 2. Producing one token is one trip up a fixed stack of blocks: dozens of layers, then done. That's a **fixed budget of serial computation per token**, the same for "what's 2+2?" as for "is this proof valid?" Think of it as a circuit of fixed depth. Some problems need more sequential steps than the circuit has layers. No amount of cleverness in the weights fixes that within one token.
+
+**The escape: write it down.**
+Every generated token is appended to the context (Session 1), and every *later* token can attend to it (Session 2). So when the model writes "17 × 24 = 17 × 20 + 17 × 4 = 340 + 68," each intermediate result becomes **input for the next forward pass**. One fixed-depth pass computes "340." The next pass *reads* "340" and builds on it. Generated text acts as a **scratchpad**, and the context window is the tape. More tokens means more serial steps, and more steps means harder problems become solvable. That isn't just a metaphor. Theory results show that transformers allowed to generate intermediate steps can solve problem classes that answering immediately provably can't.
+
+**Order matters, and causal masking enforces it.**
+If the model writes **"The answer is 408"** *first*, that answer got one token's worth of compute. Any explanation that follows can't have influenced it. Causal masking forbids looking ahead. The explanation becomes a lawyer's brief for a verdict already reached. Reasoning *before* the answer is computation. Reasoning *after* the answer is public relations.
+
+**A historical absurdity, as promised.**
+In 2022, researchers found that appending **"Let's think step by step"** to math questions dramatically improved scores on some benchmarks. Five words. Decades of AI research, and one of the year's notable results was, in effect, telling the machine to show its work, the same note teachers have written in margins for a century. It worked for exactly the reason above: the phrase made the model spend tokens *before* committing to an answer.
+
+**The bridge to the memory half.** Those reasoning tokens live in the **context window**. They consume the budget, they get diluted, they occupy the cache, and they can be compacted. A 20,000-token reasoning chain is 20,000 tokens of working memory competing with everything you learned about in Sessions 3 and 4. Reasoning and memory are one resource used two ways.
+
+*(Simplification flag: what the model writes and what the network actually computes aren't guaranteed to match. The text is a useful trace, not a perfect window into the computation. Session 11 covers that.)*
+
+## So what?
+
+This should change how you write prompts and schemas. **Never force an immediate answer on a hard problem.** That includes structured output: if your JSON schema is `{"answer": …, "reasoning": …}`, you've told the model to decide first and justify afterward. Put `reasoning` first. And budget for thinking. Hard tasks *should* cost more tokens, and starving them is a false economy, like making your senior engineer answer every design question in five seconds.
+
+## Check-in question
+
+You need a model to judge whether a contract clause violates a policy, and you're choosing between two output schemas:
+
+- **(A)** `{"verdict": "violates" | "ok", "rationale": "..."}`
+- **(B)** `{"rationale": "...", "verdict": "violates" | "ok"}`
+
+1. Which gives better verdicts on hard cases? Explain using **fixed compute per token** and **causal masking**.
+2. In schema **A**, why is the rationale **unreliable as an explanation** of the verdict, even if it reads convincingly?
+3. In a long agent session, the model writes 15,000 tokens of reasoning on step 3 of a 40-step task. Using the *memory* half of the course, name **two consequences** of that reasoning sitting in the context for steps 4–40.

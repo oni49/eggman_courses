@@ -106,3 +106,17 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **System reminder:** Harness-injected text near the end of the context (dates, to-dos, nudges) that exploits recency.
 - **Skill vs. subagent:** A skill answers "what do I need to know?" A subagent answers "where should the work happen?" They combine freely.
 - **Report-time vs. compaction-time loss:** A subagent loses detail immediately and by design (whatever the report omits). A skill in the main window loses detail later and by accident (whatever compaction omits).
+
+## Session 7: Thinking in Tokens
+
+- **Chain of thought (CoT):** The model generating intermediate reasoning steps as text before giving an answer.
+- **Fixed compute per token:** Each token gets exactly one pass through a fixed-depth stack, so the serial computation per token is bounded regardless of difficulty.
+- **Scratchpad:** Generated tokens used as working memory. Each intermediate result becomes input that later forward passes can read.
+- **Serial depth:** The number of sequential computation steps a problem needs. CoT extends it beyond the stack's layer count.
+- **Reasoning-before-answer:** Ordering that lets the answer token read the reasoning. The reverse order makes the explanation post-hoc.
+- **Post-hoc rationalization:** An explanation generated *after* a decision, which therefore could not have produced it.
+- **Zero-shot CoT:** Eliciting reasoning with an instruction alone (famously, "Let's think step by step"), without worked examples.
+- **Few-shot CoT:** Eliciting reasoning by including worked examples with step-by-step solutions in the prompt.
+- **Field order in structured output:** Put `reasoning` before `answer` or `verdict` in JSON schemas, because generation runs left to right.
+- **Reasoning tokens as working memory:** Reasoning occupies the context window, uses the budget, gets diluted, and is subject to caching and compaction like any other text.
+- **Correction asymmetry:** A long, fluent wrong chain of reasoning outweighs a short later correction through in-context learning. Fix it by pruning or summarizing the stale reasoning and restating the correction near the end.
