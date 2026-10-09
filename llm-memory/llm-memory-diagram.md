@@ -4,6 +4,8 @@ A diagram of how memory works for an LLM, using Claude (and the Claude Code harn
 
 ## Layer 1: The stateless machine (Session 1)
 
+![Layer 1, phone-friendly render](diagram-layer1.png)
+
 ```mermaid
 flowchart LR
     subgraph CLIENT["Harness (client side): owns ALL state"]
@@ -31,6 +33,8 @@ flowchart LR
 - *External memory* reaches the model only by becoming contextual memory, either through **push** (the harness injects it) or **pull** (the model asks for it through a tool).
 
 ## Layer 2: Inside the window (Session 2)
+
+![Layer 2, phone-friendly render](diagram-layer2.png)
 
 What happens to the transcript once it reaches the model, and where the KV cache sits.
 
@@ -66,6 +70,8 @@ flowchart TB
 - **Design consequence:** stable content goes first and volatile content last. A timestamp at the top of the system prompt would make every call a full cache miss.
 
 ## Layer 3: Where attention goes, and how rules fade (Session 3)
+
+![Layer 3, phone-friendly render](diagram-layer3.png)
 
 The same transcript, annotated with how strongly the model tends to *use* each region. Nothing is deleted. Some regions just get quieter.
 
