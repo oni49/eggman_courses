@@ -8,6 +8,7 @@ Professor Eggman's seminar. Eleven sessions, about 10 minutes each.
 - [References](llm-memory-references.md): sources, tiered (Foundational / Verify / Go deeper)
 - [Diagram](llm-memory-diagram.md): Claude's memory, built up one layer per session (added at the student's request)
 - [Deep dives](llm-memory-deep-dives.md): off-curriculum side threads the student asked to keep
+- [Answer key](llm-memory-answer-key.md): model answers and common traps for every check-in (⚠️ spoilers, try the questions first)
 
 ## Student calibration
 BSc CS, 15 years out. Has read *The Illustrated Transformer*. Already holds these models: weights are frozen at runtime, the harness feeds "memory" back in each turn, context behaves like an append-only list where attention gets diluted, and chain of thought works like self-reprompting. Observed failure: rules and framing get forgotten in long sessions.
