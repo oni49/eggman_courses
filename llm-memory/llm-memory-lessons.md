@@ -1,0 +1,387 @@
+# LLM Memory, Context Management & Extended Reasoning: Lessons
+
+The lectures as delivered. See the [course map](llm-memory-course-map.md).
+
+---
+
+# Session 1: The Stateless Machine
+
+Let's start with the most important fact in this course, and the most often forgotten: **the model remembers nothing.** It doesn't remember a little. It remembers nothing at all.
+
+**The model is a pure function.**
+
+Take away the chat interface, the branding, and the friendly tone, and what's left looks like this:
+
+```
+next_token_probabilities = f(weights, tokens_so_far)
+```
+
+You give it a sequence of tokens. It returns a probability for every possible next token in its vocabulary, typically tens of thousands to a couple hundred thousand of them. That's all one call does. It doesn't produce sentences or answers. It produces one probability distribution.
+
+The weights are fixed, as you said. Given the same inputs, the function gives the same distribution. *(Simplification flag: in practice, hardware introduces small numerical noise. That matters a lot in Session 10, when we try to catch weights changing.)*
+
+**Generation is a loop around that function.**
+
+To get a sentence, the surrounding code does this:
+
+1. Call `f` and get the distribution.
+2. **Sample** one token from it. The *temperature* setting controls how adventurous that choice is.
+3. Append the token to the sequence.
+4. Repeat until a stop token appears.
+
+This is called **autoregressive generation**: each output is fed back in as input. A 500-word reply takes about 700 trips around this loop. The model never plans the whole paragraph in one step. It commits to one token at a time, and the paragraph emerges.
+
+Keep that in mind. It's why chain of thought works, and we'll come back to it in Session 6.
+
+**The conversation is a document the client rebuilds.**
+
+So where does "the conversation" live? On your side of the wire.
+
+Your API experiments were correct. Every turn, the harness, meaning the code around the model, sends the *entire transcript* again: system prompt, every message, every tool result. The model reads it as one fresh document. It's like a stateless HTTP server where the client resends the full session in every request, because the server has no session table.
+
+This is where I'd adjust your "queue" picture. A queue suggests the model holds the structure. It doesn't. The client builds the array and the model reads a snapshot. Nothing gets popped out unless the harness removes it.
+
+It also means the model can't tell whether an earlier "assistant" turn was really written by it. Those turns are text with a label. Edit one through the API and the model will carry on as though it said it. That's a strange property, and it's useful once you know about it.
+
+**Two kinds of memory, and soon a third.**
+
+That leaves two places knowledge can live:
+
+- **Parametric memory** is in the weights. It's learned during training and frozen afterward. It's vast but fuzzy, a lossy compression of the training data. Think of it as ROM with an attitude.
+- **Contextual memory** is in the token sequence. It's exact, temporary, and limited by the **context window**, the maximum number of tokens one call can accept.
+
+Everything people call "memory" in products, such as ChatGPT remembering your dog's name or Claude reading your project notes, is the harness choosing what to put into the context. That's the third kind, external memory, and we'll get to it in Session 5. The weights stay out of it.
+
+## So what?
+
+Every memory bug you've seen is really a question about what the harness sent. If a model "forgot" a rule, either the rule wasn't in the context, or it was there and lost out to everything else competing for attention. Those two failures have completely different fixes. When you debug these systems, the first question is always the same: *what exactly was in the window when it made that choice?* Once you think of the model as a stateless function with a smart client, half of the magic turns out to be plumbing, and plumbing can be inspected.
+
+## Check-in question
+
+Suppose you're using the API directly. In turn 3 you tell the model *"My server is called Barnaby."* In turn 10 you ask *"What's my server called?"* and it answers correctly.
+
+1. At the moment it answers in turn 10, **where physically is "Barnaby,"** and how did it get there?
+2. Tomorrow you open a brand-new conversation and ask the same question. Name **two different mechanisms** that could make it answer correctly. For each, say whether the **weights** were involved.
+
+---
+
+# Session 2: Anatomy of a Context Window
+
+**Recap:** Last time we established that the model is a stateless function, and that the harness resends the entire transcript on every call. **Today** we look inside that function: what a "context window" physically is while the model is running.
+
+**First, the correction I promised.** The Illustrated Transformer describes the 2017 design: an encoder reads the input, and a decoder writes the output. Claude, GPT, and nearly every modern chat model drop the encoder. They're **decoder-only**: one stack of identical blocks, used for both reading and writing. So forget the two-towers picture. What you have is a single tall stack that the token sequence flows up through.
+
+**Tokens become vectors.** Text is split into **tokens**, which are subword chunks. In English a token averages roughly four characters, or three-quarters of a word. Each token is looked up in an embedding table and becomes a vector: a list of a few thousand numbers. The model also mixes in information about *position*, so it can tell "dog bites man" from "man bites dog." *(How position is encoded matters for forgetting, so it comes back in Session 3.)*
+
+That column of vectors, one per token, rises through dozens of blocks. Each block does two things:
+
+1. **Attention:** each token gathers information from other tokens.
+2. **Feed-forward:** each token is transformed on its own. This is where much of the parametric knowledge from Session 1 seems to live. *(A simplification, and still an active research question.)*
+
+**Attention is a soft database lookup.** At every block, each token produces three vectors:
+- a **query**: "what am I looking for?"
+- a **key**: "what do I contain?"
+- a **value**: "what do I hand over if you pick me?"
+
+Each token's query is compared against the keys of the other tokens. The scores are normalized into weights that sum to 1, and the token receives a weighted blend of their values. Think of it as a hash map that returns *everything at once*, weighted by relevance, instead of one exact match. **Multi-head** attention runs many of these lookups in parallel, each learning to look for something different: syntax, coreference, "the instruction I'm following," and so on.
+
+That "weights sum to 1" detail matters. It's the mechanism behind the dilution hunch you mentioned in our first conversation.
+
+**Causal masking makes it one-way.** In a decoder, a token may attend only to tokens *before* it, never after. Token 50 cannot see token 80. Your instinct that it's "a one-way, forward operation" was correct. This is the rule that enforces it.
+
+**The KV cache.** Causal masking has a useful consequence. Token 50's keys and values depend *only on tokens 1 through 50*. Appending token 51 can't change them. So the server computes them once and stores them in GPU memory. That's the **key-value (KV) cache**. It's memoization, applied to attention.
+
+When generating, each new token computes only *its own* query, key, and value, then attends over the cache. Processing your prompt once is expensive, because every token attends to every earlier one and the cost grows quadratically with length. After that, each output token is comparatively cheap.
+
+The KV cache is the closest thing the model has to working memory. It lives in GPU memory, it grows linearly with context, it's private to your request, and it's normally **discarded when the call ends**. The context window limit is partly a training limit and partly the physical cost of this cache.
+
+## So what?
+
+The context is effectively an **append-only log with a prefix-keyed cache**. Appending is cheap. Editing anything early invalidates every cached entry after it, like changing the first line of a file that a build system has hashed. This drives real design decisions. Harnesses put stable material (system prompt, tool definitions, project instructions) *first* and volatile material *last*. Providers sell **prompt caching**, which keeps that prefix's KV cache between calls so you don't pay to recompute it. Long contexts cost money and latency in proportion to their size, which is why context management (Session 4) is an engineering discipline and not a matter of tidiness.
+
+## Check-in question
+
+On turn 20 of a long conversation, your harness has two choices:
+
+- **(A)** fix a one-word typo in the system prompt at the very *start* of the transcript, or
+- **(B)** append a one-line note to the very *end*.
+
+Using **causal masking** and **what each token's keys and values depend on**, explain which change forces more recomputation on the next call, and *why*. Then: if prompt caching were in use, what happens to the cached prefix in each case?
+
+---
+
+# Session 3: How Models Forget Without Deleting
+
+**Recap:** The context is an append-only log. The model reads all of it on every call, with cached keys and values making that cheap. **Today:** if nothing is ever deleted, why did your rules fade?
+
+Here's the paradox. In a 150-turn conversation, your rule from turn 1 is *still in the window*, byte for byte. The model can see it. It just stops *acting* on it. There are four separate mechanisms behind that, and they add up.
+
+**1. The attention budget.**
+Remember: attention weights in each head sum to 1. Every token added is another candidate competing for a share. A rule that took 5% of a head's attention in a short conversation might get 0.2% in a long one. Nothing was removed. It's just quieter.
+
+What hurts most isn't *more* text. It's *similar* text. Fifty paragraphs that look a bit like your rule pull attention away much more than fifty paragraphs about something unrelated. Engineers call these **distractors**.
+
+*(Simplification flag: some heads stay very sharp at long range, so this isn't a strict zero-sum budget. It's still the right intuition.)*
+
+**2. Position matters: lost in the middle.**
+Models don't attend evenly across the window. Researchers who planted a fact at different depths in long contexts found a U-shaped curve: recall is best near the **start** and the **end**, and worst in the **middle**. The end benefits from recency. The start benefits from training habits and from **attention sinks**, early tokens that heads use as a default parking spot. Your rule, mentioned in passing in turn 40, sits in the trough.
+
+**3. Advertised versus effective context.**
+A model may *accept* a million tokens, but it was trained mostly on much shorter sequences, and the positional encoding becomes less reliable at distances it rarely saw in training. "Needle in a haystack" tests, where you retrieve one planted sentence, look impressive. Tasks that require *combining* several facts spread across a long context degrade much earlier. The usable window is smaller than the one on the box.
+
+**4. The transcript teaches by example.** This is the subtle one, and it's probably the real culprit in your experience.
+Models are extraordinarily good at **in-context learning**: they continue whatever pattern the document shows. Your rule is one abstract instruction. The transcript is 150 *concrete examples* of how this conversation goes. If a few replies drifted from the rule and nobody objected, those replies now count as evidence of "how we do things here." Each drift makes the next one more likely. The conversation becomes its own prompt, and when an instruction conflicts with examples, the examples usually win.
+
+**And yes, sometimes it really was deleted.** Harnesses do trim or summarize old turns when they run out of room. That's genuine forgetting, and it's Session 4's subject. Always check that first, because the fix is completely different.
+
+## So what?
+
+This gives you a debugging checklist and a set of countermeasures. **Placement:** put critical rules at the start *and* restate them near the end. That's why harnesses like Claude Code inject short reminders late in the context. **Hygiene:** fewer distractors, and less stale tool output. **Correct drift immediately**, before bad examples pile up. **Start fresh** when the history has become mostly noise. "The model forgot" is rarely one bug. Usually it's dilution, position, and self-reinforcing examples together.
+
+## Check-in question
+
+Your system prompt says *"Always use British spelling."* By turn 150 the model writes "color" and "optimize." The transcript contains:
+- a 20,000-token pasted American technical document around turn 70
+- about a dozen earlier replies that already slipped into American spelling, with no correction
+
+**Identify which of the four mechanisms are at work, and point to the specific evidence for each.** Then propose **two fixes that target *different* mechanisms**, and say which mechanism each one addresses.
+
+---
+
+# Session 4: Context Management
+
+**Recap:** Rules fade without being deleted, through dilution, position effects, and the transcript teaching by example. **Today:** the harness starts deleting things *deliberately*, and we look at how to do that without damaging the conversation.
+
+**The harness is a budget allocator.** On every call it has to answer one question: *of everything this conversation has ever produced, what goes into the window this time?* The field has started calling this **context engineering**. That's a grand name for an old problem. You have a scarce, expensive resource, and every token in it takes attention away from every other token.
+
+**The layout comes first.** The previous sessions give the standard shape:
+
+```
+[ tools + system prompt ]  [ conversation history ]  [ latest turn + reminders ]
+   stable, pinned, cached        managed region            volatile, hot
+```
+
+The stable prefix is **pinned**, meaning it's never trimmed, and it's cached. Everything interesting happens in the middle.
+
+**Four strategies for the middle, from bluntest to cleverest:**
+
+**1. Truncation (sliding window).** Drop the oldest turns once you hit a limit. It's cheap and predictable, and it doesn't care what it throws away. The decision from turn 12 that explained *why* you chose Postgres goes off the edge just like small talk does. The usual safeguard is that only the conversation slides. The system prompt stays pinned.
+
+**2. Summarization (compaction).** Ask a model to rewrite the old history as a short summary, then replace the history with that summary. Claude Code does this automatically as the window fills, and on demand with `/compact`. It keeps the *gist* and discards *detail*, and **a model decides what counted as detail**. It's a JPEG of your conversation: fine at a glance, and full of artifacts when you zoom in. If Claude seems to forget a specific detail after compaction, it probably isn't attention at all. The detail just didn't make it into the summary.
+
+**3. Pruning tool results.** In agent work, most of the bulk isn't conversation. It's *tool output*: file contents, logs, search results. A 3,000-line file read 40 turns ago is pure distractor now. Pruning replaces it with a stub like "[read config.py: 3,000 lines]" and keeps the *fact* that the read happened. If needed, the model can read the file again. This is lossless in a useful sense: the information still exists outside the window, and you can get it back.
+
+**4. Offloading.** Have the model write important state, such as decisions, progress, and to-do lists, into files *outside* the window, and read them back when needed. That turns contextual memory into external memory, which is Session 5's territory.
+
+**The cache tax.** Every one of these strategies *edits the history*. By Session 2's prefix rule, every edit is a cache miss from that point onward. So well-built harnesses don't trim a little every turn. They let context accumulate, cache-friendly, and then compact in one large step when a threshold is reached. One cache miss on a much smaller context, then cheap appends again. It's the same tradeoff as log compaction in a database: let the log grow, then occasionally merge it into a compact form.
+
+## So what?
+
+Decide what's **durable** and what's **conversational**. In Claude Code, a decision you typed in chat lasts only as long as it survives compaction. The same decision written in **CLAUDE.md** is loaded fresh into the pinned region, so it survives. More on exactly how in Session 6. And `/clear` versus `/compact` isn't a matter of taste. One is truncation of everything, the other is lossy summarization, and you should choose deliberately.
+
+## Check-in question
+
+A Claude Code session is at **180K tokens** of a **200K** window. The context contains:
+- the system prompt and tool definitions (about 15K)
+- in turn 12, your decision: *"Use Postgres, not MySQL, because we need JSONB."*
+- **60 file-read results** totalling about 120K tokens
+- the **last 10 turns** of active debugging (about 30K)
+
+**Design a policy:** which strategy (truncate, summarize, prune, offload, or leave alone) do you apply to *each* of the four regions, and what's the specific risk of each choice? Then: **where does the cache miss happen**, and why does it make sense to do all of this in **one step** rather than a little each turn?
+
+---
+
+# Session 5: External Memory
+
+**Recap:** Last time the harness learned to delete on purpose: truncate, summarize, prune, offload. **Today:** where offloaded information goes, and how it gets back into the window.
+
+**The one rule.** External memory is anything outside the window: files, databases, search indexes, past chats. The model can't use any of it *directly*. It has to come back in as tokens, either **pushed** by the harness or **pulled** by the model through a tool. External memory is really a set of storage systems with a gateway into the context.
+
+The analogy is the memory hierarchy. The window is RAM: fast, small, and the only place computation happens. External stores are disk. Retrieval is a page fault. The twist is that the "operating system" handling the fault is sometimes the harness and sometimes the model itself.
+
+**Family 1: Files and notes.** These are exact, structured, and addressed by name. Examples are CLAUDE.md, decision logs, to-do lists, and the memory directories some APIs now give models to read and write. Retrieval is trivial: *open the file*. This is the right home for facts that must be **exactly right**, such as decisions, preferences, and conventions. It's simple, inspectable, and editable with a text editor. Engineers underrate it because it isn't exciting.
+
+**Family 2: Semantic search (RAG).** This is for corpora too big to push, like 5,000 pages of documentation. **Retrieval-Augmented Generation** works like this:
+
+1. Split the documents into **chunks** of a few hundred tokens each.
+2. Run each chunk through a separate **embedding model**, which turns it into a single vector. Text with similar meaning ends up with nearby vectors.
+3. Store the vectors in a **vector database**.
+4. At question time, embed the question, find the nearest chunk vectors, and **paste those chunks' text** into the context.
+
+Now the correction I owe you from our first conversation. You guessed memory might be fed in "through embeddings first." It isn't. **The model never sees those vectors.** They exist only to *search*. What enters the context is plain text, which the model then re-tokenizes and embeds with its *own* embedding table (Session 2). The two kinds of embedding have the same name and do completely different jobs.
+
+**Family 3: Agentic search.** Give the model `grep`, `find`, and `read`, and let it search over several steps: look, read, refine, look again. That's slower, but it adapts in a way a single vector lookup can't. Claude Code works this way. It doesn't build a vector index of your repository. It searches the repository the way you would.
+
+**Product "memory"** (ChatGPT remembering your dog, Claude recalling past chats) combines these: extracted facts or summaries are pushed in at the start, plus a pull tool such as "search past conversations."
+
+**How it fails:**
+- **Retrieval miss.** The wrong chunk comes back. The model can't know what it wasn't shown, so it answers confidently from whatever *was* retrieved.
+- **Chunking damage.** A key sentence is split from the context that gave it meaning.
+- **Staleness.** The index is from last month and the docs changed yesterday.
+- **Poisoning.** Retrieved text is *input*, and anyone who can write to the store can write instructions into your context.
+
+## So what?
+
+**Retrieval quality puts a ceiling on answer quality.** When a RAG system gives a wrong answer, look at the *retrieval* before blaming the model. Usually the model reasoned correctly from the wrong page. When you design a system, match the store to the need: exact and durable facts go in files and get pushed, large corpora go behind search and get pulled, and anything that changes needs a refresh plan.
+
+## Check-in question
+
+You're building an internal support assistant. It needs (a) **each user's preferences** ("terse answers, uses Python") and (b) **5,000 pages of API docs**.
+
+1. For (a) and (b), choose a store and say **push or pull**, with a one-line reason for each.
+2. A user asks *"What's the timeout for the Payments API?"* Retrieval returns chunks about the **Orders** API timeout, and the model confidently answers with that number. **Which component failed, and why couldn't the model catch it?**
+3. True or false, with one sentence: *"The model reads the retrieved chunks as embedding vectors."*
+
+---
+
+# Session 6: Claude's Memory Stack
+
+*(Delivered twice. This is the second delivery, given at the student's request to move it to the bottom of the reading window, and it's the version the check-in was answered against.)*
+
+**Recap:** External memory reaches the model only as tokens, pushed by the harness or pulled by the model, and the model never actually gets to *touch* anything. **Today:** the capstone you asked for. We take apart Claude Code's memory, with me as the specimen. I'll try to hold still.
+
+**First, a misconception to drop.** You asked whether skills and agent files are "resent each prompt." Session 1 already answered that: *everything* in the window is resent on every call. Statelessness means rereading your entire diary each morning, at length. So "is it resent?" is the wrong question. The right ones are:
+
+1. **When does it enter?**
+2. **Who puts it there,** the harness (push) or the model (pull)?
+3. **Does it survive compaction?**
+
+**The stack, from the top of the window down:**
+
+| Layer | Enters | Push / pull | Survives `/compact`? |
+|---|---|---|---|
+| **System prompt** (Anthropic's harness instructions) | Every session, first | Push | Yes: pinned |
+| **Tool definitions**, including MCP tools | Session start | Push | Yes: pinned |
+| **CLAUDE.md** (user, project, parent directories) | Session start | Push | Yes: reloaded |
+| **Skill *index*** (name + description per skill) | Session start | Push | Yes |
+| **Skill *body*** (full SKILL.md) | When invoked | **Pull** | No: it's ordinary transcript, so it gets summarized |
+| **Nested CLAUDE.md** in subfolders | When I touch files there | Push, triggered by my reads | Varies |
+| **Subagent definitions** | Index at start, body only inside the subagent | Index pushed, body runs in a **separate window** | Index yes |
+| **System reminders** (dates, to-dos, nudges) | Mid-conversation, near the end | Push | Not needed: reinjected |
+
+*(Simplification flag: the exact injection points change between releases. Memorize the pattern, not the positions. The positions will be different by the time you've finished memorizing them.)*
+
+**The pattern underneath is progressive disclosure.** Push a cheap *index* on every call, and pull the expensive *body* only when it's needed. It's a table of contents in place of the whole library, a trick librarians have used for a couple of millennia. This conversation demonstrates it:
+
+- When you typed "Eggman, teach me," the skill's *description* was already in my context, and that's how I recognized the request. Its *body* arrived only when I invoked it. That's the full answer to your earlier "where did you pull your skill from?", delivered five sessions late, which in academia counts as prompt.
+- My context lists some tools as **deferred**: name only, with the full schema fetched on demand. The same trick, applied to tools.
+- Subagents go further. Their instructions never enter *my* window at all. They work in a fresh context and hand back a summary, like a consultant who leaves a report and none of the mess.
+
+**The consequence engineers miss.** A skill's **description** is pushed into every call, so it's permanent. Its **body** is temporary: one message in the transcript, subject to dilution (Session 3) and summarization (Session 4) like any other text. You've seen the evidence. My personality instructions arrived once, sank into the middle of the window, and my sarcasm went with them. CLAUDE.md, on the other hand, is reloaded every session. It's the durable layer. Skills fade.
+
+## So what?
+
+Match each piece of guidance to the layer whose lifetime fits it. **Always-on rules** go in CLAUDE.md, and they should be short, because they're pushed into every call. **Sometimes procedures** go in skills, with a description sharp enough that the right request triggers them. **Messy, self-contained jobs** go to subagents, so their clutter never reaches your main window. And any skill that needs to run for a long time, such as one that runs a semester-long seminar, needs a refresh plan, or you get a professor who slowly turns into a dull textbook.
+
+## Check-in question
+
+You have a **3,000-word deployment runbook**. You deploy about once a week, and most sessions have nothing to do with deployment.
+
+1. Compare putting it in **CLAUDE.md**, making it a **skill**, and making it a **subagent**. For each, give the **token cost on a session that never deploys** and **what happens to it after `/compact`** in a session that did deploy.
+2. Pick one and justify it.
+3. In one sentence: why is the skill's **description** the most important line in the whole skill?
+
+---
+
+# Session 7: Thinking in Tokens
+
+**Recap:** The memory half is done. You now know what enters my window, when, on whose decision, and how it decays. **Today:** the reasoning half, and the surprising fact that ties the two together. **Thinking *is* memory.**
+
+**First, a correction to an idea you brought to the first session.** You described chain of thought as "a pass at prompt improvement before use." That's close, and you also suspected it wasn't quite right, so give yourself credit. It isn't polishing the question. It's **buying more computation**.
+
+**The constraint: fixed compute per token.**
+Recall Session 2. Producing one token is one trip up a fixed stack of blocks: dozens of layers, then done. That's a **fixed budget of serial computation per token**, the same for "what's 2+2?" as for "is this proof valid?" Think of it as a circuit of fixed depth. Some problems need more sequential steps than the circuit has layers. No amount of cleverness in the weights fixes that within one token.
+
+**The escape: write it down.**
+Every generated token is appended to the context (Session 1), and every *later* token can attend to it (Session 2). So when the model writes "17 × 24 = 17 × 20 + 17 × 4 = 340 + 68," each intermediate result becomes **input for the next forward pass**. One fixed-depth pass computes "340." The next pass *reads* "340" and builds on it. Generated text acts as a **scratchpad**, and the context window is the tape. More tokens means more serial steps, and more steps means harder problems become solvable. That isn't just a metaphor. Theory results show that transformers allowed to generate intermediate steps can solve problem classes that answering immediately provably can't.
+
+**Order matters, and causal masking enforces it.**
+If the model writes **"The answer is 408"** *first*, that answer got one token's worth of compute. Any explanation that follows can't have influenced it. Causal masking forbids looking ahead. The explanation becomes a lawyer's brief for a verdict already reached. Reasoning *before* the answer is computation. Reasoning *after* the answer is public relations.
+
+**A historical absurdity, as promised.**
+In 2022, researchers found that appending **"Let's think step by step"** to math questions dramatically improved scores on some benchmarks. Five words. Decades of AI research, and one of the year's notable results was, in effect, telling the machine to show its work, the same note teachers have written in margins for a century. It worked for exactly the reason above: the phrase made the model spend tokens *before* committing to an answer.
+
+**The bridge to the memory half.** Those reasoning tokens live in the **context window**. They consume the budget, they get diluted, they occupy the cache, and they can be compacted. A 20,000-token reasoning chain is 20,000 tokens of working memory competing with everything you learned about in Sessions 3 and 4. Reasoning and memory are one resource used two ways.
+
+*(Simplification flag: what the model writes and what the network actually computes aren't guaranteed to match. The text is a useful trace, not a perfect window into the computation. Session 11 covers that.)*
+
+## So what?
+
+This should change how you write prompts and schemas. **Never force an immediate answer on a hard problem.** That includes structured output: if your JSON schema is `{"answer": …, "reasoning": …}`, you've told the model to decide first and justify afterward. Put `reasoning` first. And budget for thinking. Hard tasks *should* cost more tokens, and starving them is a false economy, like making your senior engineer answer every design question in five seconds.
+
+## Check-in question
+
+You need a model to judge whether a contract clause violates a policy, and you're choosing between two output schemas:
+
+- **(A)** `{"verdict": "violates" | "ok", "rationale": "..."}`
+- **(B)** `{"rationale": "...", "verdict": "violates" | "ok"}`
+
+1. Which gives better verdicts on hard cases? Explain using **fixed compute per token** and **causal masking**.
+2. In schema **A**, why is the rationale **unreliable as an explanation** of the verdict, even if it reads convincingly?
+3. In a long agent session, the model writes 15,000 tokens of reasoning on step 3 of a 40-step task. Using the *memory* half of the course, name **two consequences** of that reasoning sitting in the context for steps 4–40.
+
+---
+
+# Session 8: Trained Reasoners
+
+**Recap:** Reasoning tokens are computation. Each one is a fixed-depth pass whose output later passes can read, and they all live in the window. **Today:** what changes when the model is *trained* to reason instead of politely asked to. And the answer to your Session 7 worry about where the old thinking goes.
+
+**From asking to training.**
+Session 7's trick was a request: "think step by step." The model complied using habits it had picked up from human text, which, frankly, mostly isn't careful reasoning. The 2024–25 change was to **train** it. Give the model problems with checkable answers, such as math with known results or code with tests. Let it generate long reasoning. **Reward only correct final answers**, using reinforcement learning. Nobody writes the reasoning for it. The model works out for itself which ways of thinking get rewarded.
+
+What emerged was strange. Without being taught, models began **backtracking**, **checking their own work**, and writing things like *"wait, that's wrong, let me reconsider."* One 2025 paper described an "aha moment" partway through training, when its model spontaneously learned to stop and re-examine itself. Billions of dollars of compute, and the breakthrough was teaching a machine to say "hmm, hang on." Every good engineer reaches the same discovery at about 2 a.m.
+
+**A new dial: test-time compute.**
+For years, "better model" meant bigger model and more training. Reasoning models added a second axis: **think longer at answer time**. On hard tasks, accuracy keeps rising as the thinking budget grows, with diminishing returns. Intelligence became partly a *runtime setting*.
+
+**How it looks on Claude's API.** With extended thinking on, you set a **thinking budget** in tokens. The response then contains `thinking` blocks, the scratchpad, before the visible `text` answer. Thinking tokens are billed as output. Claude Code exposes the same dial through effort settings. Historically, typing "think hard" or "ultrathink" in a prompt raised the budget, which is a real feature, and which proves that someone in product has a sense of humor. *(Simplification flag: parameter names and defaults change between model generations. Check the current docs.)*
+
+**Interleaved thinking.** In agent loops, the model can **think, call a tool, read the result, think again**, all within one turn. That's Session 7's scratchpad combined with the deep-dive tool loop. The rule: during that loop, the harness must send thinking blocks back **unmodified**. They're cryptographically signed, so this is the one part of the transcript you *can't* quietly edit. Session 1's "edit the assistant's words" trick stops here.
+
+**The memory answer you've been waiting for.** What happens to the thinking from earlier turns? By default, Claude's API **drops previous turns' thinking from the context**. Only the visible answers carry forward. Think of a **function call**: thinking is the local variables, the answer is the return value, and when the function returns, the stack frame is popped. That's exactly the fix you prescribed in Session 7: stale reasoning is pruned automatically, so 15K tokens of turn-3 thinking don't haunt turn 40. Any conclusion that needs to survive must be in the *answer*. *(Some newer models change this default. Check the docs for yours.)*
+
+## So what?
+
+Thinking budget is a design decision, not a "max quality" switch. Turn it up for hard, checkable problems such as debugging, proofs, and architecture choices. Turn it down for lookups and formatting, where it only adds latency and cost. In agent harnesses, **never strip or edit thinking blocks during a tool loop**. And when reasoning matters later, make sure the *answer* states the conclusion and its key reasons, because the scratchpad won't be kept.
+
+## Check-in question
+
+You're building an agent on Claude's API with extended thinking and tools.
+
+1. **Turn 1:** the model thinks for 8K tokens, calls a tool, thinks for 3K more, then answers. **Turn 2:** the user asks a follow-up. By default, **what of turn 1's thinking is in the context for turn 2**, and why is that a sensible *memory* design? Use the stack-frame analogy.
+2. To save tokens, your harness **deletes the 8K thinking block** before sending the `tool_result` back in turn 1. **What goes wrong, and why?**
+3. A product manager wants the **maximum thinking budget on every request**. Give **two reasons** against it, one about cost or latency and one from the memory half of the course.
+
+---
+
+# Session 9: Long-Horizon Agents
+
+**Recap:** Thinking is scratch space that's cleared between turns, and within a long turn it piles up until the turn ends. **Today:** what happens when the task is longer than any single window can hold: hours of work and hundreds of tool calls. Everything from Sessions 1–8 goes wrong at once, and engineers have to plan for all of it.
+
+**The problem, in one equation.** Suppose each step of an agent's work succeeds 99% of the time. That sounds excellent. Over 100 steps, the chance that *every* step succeeds is 0.99¹⁰⁰ ≈ **37%**. Long horizons turn small error rates into probable failure. They also stack up the memory problems: the window fills (Session 4), compaction blurs the plan, the agent drifts based on its own earlier output (Session 3), and the goal stated in turn 1 sinks into the middle of the window.
+
+**The core design principle:** treat the context window as a **cache**, not the source of truth. The truth lives on disk. A well-built long-horizon agent should be able to *crash* and resume from what it wrote down. Systems people will recognize the idea: it's a write-ahead log, applied to a mind that forgets.
+
+**Four patterns, usually combined:**
+
+**1. Structured note-taking.** The agent maintains its own external state: a progress file, a to-do list, a decisions log. Claude Code's **to-do list** is a live example. The model writes it with a tool, and the harness keeps **reinjecting it near the end of the context** as a reminder. It gets the durability of disk plus the recency boost from Session 3. The agent is effectively taking notes for its future, amnesiac self.
+
+**2. Ground truth outside the model.** **Git commits** serve as checkpoints, and **tests** decide what counts as done. They answer "what's finished?" without trusting anyone's memory, including the model's. A passing test suite doesn't depend on a summary.
+
+**3. Orchestrator and workers.** A main agent plans and delegates. **Subagents** do noisy subtasks in fresh windows and return reports (Session 6). The orchestrator's context stays clean, and workers can run in parallel. The cost is **tokens multiplied**, often by an order of magnitude or more compared with a single chat. Report quality becomes the bottleneck, because the orchestrator knows only what its workers chose to tell it.
+
+**4. Reset with a handoff, instead of endless compaction.** Compaction is a JPEG of a JPEG of a JPEG. Past some point it's better to **start a fresh session** from a written handoff: the progress file, the git log, and the next step. A clean window plus good notes beats a cluttered window plus fading memories.
+
+**Failure modes to expect:** declaring success too early, redoing finished work after compaction, quietly losing the goal ("I've refactored the logging library, as nobody asked"), and early errors spreading through everything after them.
+
+## So what?
+
+Plan long agent tasks the way you'd plan a distributed job that can be interrupted. **State on disk, progress made verifiable, steps safe to repeat.** Give the agent a to-do list and a progress file, commit often, and define "done" as tests passing, not the model saying so. Send noisy subtasks to subagents, and keep the orchestrator's window for the plan. Long-horizon reliability is less about smarter models and more about **better bookkeeping**.
+
+## Check-in question
+
+An agent must migrate **200 files** from library A to library B. It's about 8 hours of work, far more than one context window.
+
+1. **Where should the authoritative "done / remaining" state live**, and how does it get into the model's context at each step? **Push or pull?**
+2. Compaction happens at file 120. If that state lived **only in the conversation**, name **two specific things** that could go wrong, and say how your design from Q1 prevents each.
+3. If each file migration independently succeeds **99%** of the time and nothing checks it, what's the probability that **all 200** succeed? Name **one design element** that changes that math, and explain *how* it changes it.

@@ -1,0 +1,156 @@
+# LLM Memory, Context Management & Extended Reasoning: Vocabulary
+
+Running glossary, grouped by session. See the [course map](llm-memory-course-map.md).
+
+## Session 1: The Stateless Machine
+
+- **Weights (parameters):** The numbers learned during training that define the model. They are frozen at inference time.
+- **Inference / forward pass:** One run of the model: tokens in, a probability distribution over the next token out.
+- **Token:** The unit of text a model reads and writes, typically a word fragment.
+- **Vocabulary:** The fixed set of all tokens a model can emit, typically tens of thousands to a couple hundred thousand.
+- **Sampling:** Choosing the next token from the model's probability distribution.
+- **Temperature:** A sampling setting. Low values pick likely tokens, and high values pick more adventurous ones.
+- **Autoregressive generation:** Producing output one token at a time, with each new token appended to the input for the next step.
+- **Stop token:** A special token that ends generation.
+- **Harness:** The software around the model that builds the input, calls the model, runs tools, and manages the transcript.
+- **Transcript:** The full document (system prompt, messages, tool results) that the harness resends on every call.
+- **Context window:** The maximum number of tokens a single call can accept.
+- **Parametric memory:** Knowledge stored in the weights. It is vast, fuzzy, and frozen after training.
+- **Contextual memory:** Knowledge present in the current token sequence. It is exact, temporary, and limited by the window.
+- **External memory:** Stores outside the model, such as files, databases, and summaries, that the harness or model brings into context.
+- **Push retrieval:** The harness injects content into context before the model runs, and the model has no say.
+- **Pull retrieval:** The model calls a tool to fetch content during a turn, because it chose to.
+- **Fine-tuning:** Further training of existing weights on new data. It produces a *new* checkpoint and does not mutate the running model.
+
+## Session 2: Anatomy of a Context Window
+
+- **Encoder-decoder transformer:** The original 2017 design, in which an encoder reads the input and a separate decoder writes the output.
+- **Decoder-only transformer:** The modern chat-model design: one stack of identical blocks that both reads the prompt and generates the reply.
+- **Subword tokenization:** Splitting text into frequent chunks rather than whole words. In English this averages about four characters, or three-quarters of a word, per token.
+- **Embedding:** The vector (a list of a few thousand numbers) that a token is converted into before entering the stack.
+- **Positional encoding:** Information mixed into each token's vector so the model knows *where* it sits in the sequence.
+- **Transformer block:** One layer of the stack, made of an attention step followed by a feed-forward step.
+- **Feed-forward layer:** The per-token transformation in each block. Much parametric knowledge appears to live here.
+- **Attention:** The mechanism by which each token gathers a relevance-weighted blend of information from other tokens.
+- **Query / Key / Value:** The three vectors each token produces per block: "what I'm looking for," "what I contain," and "what I hand over."
+- **Softmax:** The normalization that turns attention scores into weights summing to 1. This is the root of attention dilution.
+- **Multi-head attention:** Many attention lookups running in parallel, each specializing in a different kind of relationship.
+- **Causal masking:** The rule that a token may attend only to earlier tokens, never later ones.
+- **KV cache:** The stored keys and values of already-processed tokens. It is memoized working memory in GPU memory, grows linearly with context, and is normally discarded after the call.
+- **Prompt caching:** A provider feature that keeps a prompt prefix's KV cache *between* calls, so it isn't recomputed or fully billed again.
+- **Prefix property:** Any token's cached computation stays valid only if every token before it is unchanged. Edits invalidate everything downstream.
+- **Cache breakpoint:** A boundary the client marks for prompt caching. Reuse happens at breakpoint granularity, up to the last unchanged breakpoint.
+
+## Session 3: How Models Forget Without Deleting
+
+- **Attention budget:** The intuition that attention weights sum to 1, so every added token competes with existing ones for a share.
+- **Attention dilution:** A rule or fact receiving a smaller share of attention as context grows, without being removed.
+- **Distractor:** Context content that *resembles* the relevant information and therefore draws attention away from it. Similar text is far more harmful than unrelated text.
+- **Lost in the middle:** The U-shaped recall curve. Information at the start and end of a long context is used best, and information in the middle worst.
+- **Primacy / recency bias:** The tendency to weight content near the start (primacy) and near the end (recency) of the context more heavily.
+- **Attention sink:** Early tokens that attention heads use as a default "parking spot," which helps give the start of the context outsized attention.
+- **Advertised vs. effective context:** The maximum tokens a model *accepts* versus the length over which it *reliably uses* information. Effective is smaller.
+- **Needle-in-a-haystack test:** A benchmark that plants one fact in a long context and asks for it back. It's easy compared with tasks that combine several scattered facts.
+- **In-context learning:** The model's ability to pick up and continue patterns shown in its context, without any weight change.
+- **Drift:** Gradual departure from an instruction. It becomes self-reinforcing when uncorrected outputs remain in the transcript as examples.
+- **Reminder injection:** A harness restating key rules late in the context, near the generation point, to exploit recency.
+
+## Session 4: Context Management
+
+- **Context engineering:** Deciding, on every call, what goes into the window. Treats context as a scarce budget.
+- **Pinned region:** Content the harness never trims (tools, system prompt), kept at the stable, cached start of the window.
+- **Managed region:** The middle of the context (conversation history, tool output) where trimming strategies apply.
+- **Truncation / sliding window:** Dropping the oldest turns past a limit. It's cheap and doesn't care what it drops.
+- **Summarization / compaction:** Replacing old history with a model-written summary. Lossy, and a model decides what counted as detail.
+- **Auto-compact:** Claude Code automatically compacting the conversation as the window approaches its limit.
+- **`/compact` vs. `/clear`:** Claude Code commands. `/compact` summarizes history (lossy), and `/clear` discards it entirely (full truncation).
+- **Tool-result pruning:** Replacing bulky, stale tool output with a short stub that records the action happened. It's recoverable by re-running the tool.
+- **Offloading:** Writing state (decisions, progress, to-dos) to external storage and reading it back on demand.
+- **Cache tax:** The cache miss that every history edit causes from that point onward. Do edits in rare, large batches.
+- **Durable vs. conversational state:** Information that must survive compaction (put it in pinned or external memory) versus information that can fade with the chat.
+- **Staleness:** Old context that no longer matches reality, such as a file read from before the file was edited. It's worse than no context.
+
+## Session 5: External Memory
+
+- **External memory:** Any store outside the context window (files, databases, indexes, past chats). It is usable only after being brought in as tokens.
+- **Memory hierarchy analogy:** Window = RAM (where compute happens), external stores = disk, retrieval = page fault.
+- **File / note memory:** Exact, name-addressed stores such as CLAUDE.md, decision logs, to-do lists, and API memory directories. The best home for facts that must be exactly right.
+- **RAG (Retrieval-Augmented Generation):** Search an external corpus and insert the retrieved text into the context before generating.
+- **Chunk:** A slice of a document (typically a few hundred tokens) that is embedded and retrieved as a unit.
+- **Embedding model (retrieval):** A separate model that maps a whole chunk or query to one vector for similarity search. Not the LLM's internal token embeddings.
+- **Vector database:** A store of chunk vectors supporting nearest-neighbor search.
+- **Nearest-neighbor search / top-k:** Finding the k chunk vectors closest to the query vector.
+- **Agentic search:** The model searches iteratively with tools (`grep`, `find`, `read`), refining queries based on what it sees. This is how Claude Code explores repositories.
+- **Keyword (lexical) search:** Exact-term matching such as grep. Precise, but blind to synonyms.
+- **Hybrid search:** Combining semantic (vector) and keyword search to cover each one's blind spots.
+- **Retrieval router:** Harness logic (a rule, classifier, or small model) that decides whether to retrieve for a given message.
+- **Query rewriting:** A model call that turns a conversational follow-up into a standalone search query before retrieval.
+- **Retrieval miss:** The wrong content is retrieved. The model can't detect what it wasn't shown.
+- **Chunking damage:** Splitting a document so a fact is separated from the context that identifies it (for example, a value cut off from its heading).
+- **Index staleness:** A search index that no longer matches the source documents.
+- **Memory poisoning / indirect prompt injection:** Malicious instructions planted in a store that later get retrieved into the context.
+
+## Session 6: Claude's Memory Stack
+
+- **System prompt (harness):** The harness's own instructions, placed first in every call. Pinned and cached.
+- **Tool definitions:** Name, description, and argument schema for each tool, pushed near the top of every call. Includes MCP tools.
+- **MCP (Model Context Protocol):** A standard way for external servers to expose tools and data to a harness.
+- **CLAUDE.md:** Project, user, and parent-directory instruction files that Claude Code pushes at session start and reloads after compaction. The durable layer.
+- **Nested CLAUDE.md:** A CLAUDE.md in a subfolder, loaded when Claude works with files in that subtree.
+- **Skill index:** The name and description of every available skill, pushed into every call. It's how the model knows when a skill applies.
+- **Skill body:** The full SKILL.md, pulled into the window only when invoked. It's ordinary transcript after that, so it can be diluted and summarized.
+- **Progressive disclosure:** Push a cheap index on every call, and pull the expensive body only when needed. Used for skills, deferred tools, and subagents.
+- **Deferred tool:** A tool listed by name only, whose full schema is fetched on demand.
+- **Subagent:** A separate model run with its own fresh context window, launched by a tool call. Only its final report returns to the caller, and its window is then discarded.
+- **Subagent definition:** A file (for example in `.claude/agents/`) giving a subagent's description (pushed to the main context) and instructions (used only inside the subagent).
+- **System reminder:** Harness-injected text near the end of the context (dates, to-dos, nudges) that exploits recency.
+- **Skill vs. subagent:** A skill answers "what do I need to know?" A subagent answers "where should the work happen?" They combine freely.
+- **Report-time vs. compaction-time loss:** A subagent loses detail immediately and by design (whatever the report omits). A skill in the main window loses detail later and by accident (whatever compaction omits).
+
+## Session 7: Thinking in Tokens
+
+- **Chain of thought (CoT):** The model generating intermediate reasoning steps as text before giving an answer.
+- **Fixed compute per token:** Each token gets exactly one pass through a fixed-depth stack, so the serial computation per token is bounded regardless of difficulty.
+- **Scratchpad:** Generated tokens used as working memory. Each intermediate result becomes input that later forward passes can read.
+- **Serial depth:** The number of sequential computation steps a problem needs. CoT extends it beyond the stack's layer count.
+- **Reasoning-before-answer:** Ordering that lets the answer token read the reasoning. The reverse order makes the explanation post-hoc.
+- **Post-hoc rationalization:** An explanation generated *after* a decision, which therefore could not have produced it.
+- **Zero-shot CoT:** Eliciting reasoning with an instruction alone (famously, "Let's think step by step"), without worked examples.
+- **Few-shot CoT:** Eliciting reasoning by including worked examples with step-by-step solutions in the prompt.
+- **Field order in structured output:** Put `reasoning` before `answer` or `verdict` in JSON schemas, because generation runs left to right.
+- **Reasoning tokens as working memory:** Reasoning occupies the context window, uses the budget, gets diluted, and is subject to caching and compaction like any other text.
+- **Correction asymmetry:** A long, fluent wrong chain of reasoning outweighs a short later correction through in-context learning. Fix it by pruning or summarizing the stale reasoning and restating the correction near the end.
+
+## Session 8: Trained Reasoners
+
+- **Reasoning model:** A model trained, not just prompted, to produce long reasoning before answering.
+- **Reinforcement learning (RL) on verifiable rewards:** Training by rewarding correct final answers on checkable tasks (math, code with tests) and letting the model discover useful reasoning strategies.
+- **Emergent self-correction:** Backtracking and self-verification ("wait, that's wrong…") that arises from RL training rather than being explicitly taught.
+- **Test-time compute:** Computation spent at answer time (thinking tokens), a second axis of capability alongside model size and training.
+- **Extended thinking:** Claude's API mode in which the response includes `thinking` blocks before the visible answer.
+- **Thinking budget / effort:** The cap or setting controlling how many tokens the model may spend thinking. Billed as output tokens.
+- **Thinking block:** The scratchpad portion of a response, separate from the visible `text` answer.
+- **Interleaved thinking:** Thinking between tool calls within one turn: think → call tool → read result → think again.
+- **Signed thinking block:** A thinking block carrying a cryptographic signature. It must be returned unmodified during a tool loop, and can't be edited.
+- **Previous-turn thinking stripping:** The default API behavior of dropping earlier turns' thinking from context. Only visible answers, tool calls, and tool results persist (newer models may differ).
+- **Stack-frame analogy:** Thinking = local variables (freed when the turn ends). Answer = return value. Tool calls and results = side effects (persist).
+- **Mid-turn accumulation:** Within a long agentic turn, all thinking stays in context across every tool round trip until the turn ends.
+
+## Session 9: Long-Horizon Agents
+
+- **Long-horizon task:** Work spanning more steps or time than one context window can hold: hours of work, hundreds of tool calls.
+- **Compounding error:** Per-step success rates multiply. 0.99¹⁰⁰ ≈ 37%, and 0.99²⁰⁰ ≈ 13%.
+- **Context as cache:** Treat the window as a fast, lossy cache, with the source of truth on disk. The agent should be able to crash and resume.
+- **Write-ahead log analogy:** Record progress durably *before* relying on it, so recovery doesn't depend on volatile memory.
+- **Structured note-taking:** The agent maintains external state (progress file, to-do list, decisions log) for its future, amnesiac self.
+- **To-do list reinjection:** Claude Code's pattern: the model writes the list with a tool, and the harness keeps re-inserting it near the end of the context.
+- **Hybrid push/pull:** The model *initiates* bookkeeping (pull side, model's decision), and the harness then *pushes* it every turn.
+- **Push the index, pull the details:** Push a compact status summary every turn, and keep the full log available on demand.
+- **Ground truth outside the model:** Tests and git commits define "done" and "where we are," independent of any summary.
+- **Checkpoint:** A durable, recoverable point of progress (for example, a commit).
+- **Orchestrator–worker pattern:** A main agent plans and delegates subtasks to subagents with fresh windows, receiving reports.
+- **Token multiplication:** Multi-agent systems spend far more tokens than single chats, often an order of magnitude or more.
+- **Context reset with handoff:** Starting a fresh session from written notes instead of compacting repeatedly.
+- **Idempotent step:** A step that can be safely repeated, which makes retries possible.
+- **Validator + retry:** External checking turns silent failures into detected ones, so the risk becomes "a failure escaped detection," which is far smaller.
+- **Premature completion:** An agent declaring "done" without verification. Define done by tests, not by the model's claim.

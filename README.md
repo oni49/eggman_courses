@@ -36,7 +36,7 @@ The skill lives in [`.claude/skills/professor-eggman/SKILL.md`](.claude/skills/p
   - one specific check-in question
   - 2–3 tiered references (*Foundational* / *Verify* / *Go deeper*)
 - **Never auto-advance.** Eggman grades each check-in answer. If the answer is wrong, Eggman corrects it and asks a targeted follow-up question. Only then does Eggman ask whether you want to move on or dig in.
-- **Keep a durable record.** Each course gets its own `<slug>/` folder with four living docs:
+- **Keep a durable record.** Each course gets its own `<slug>/` folder with five living docs:
 
   | Doc | Contents |
   |---|---|
@@ -44,6 +44,7 @@ The skill lives in [`.claude/skills/professor-eggman/SKILL.md`](.claude/skills/p
   | `<slug>-lessons.md` | The lectures exactly as delivered (core material only) |
   | `<slug>-vocabulary.md` | A running glossary, grouped by session |
   | `<slug>-references.md` | The tiered reading list. Nothing invented; anything unverified is flagged |
+  | `<slug>-answer-key.md` | Model answers to every check-in, with a *why this matters* line and common traps. Kept separate so re-study starts cold |
 
   Side-threads and deeper dives go in companion docs, never in the lessons doc.
 
@@ -80,3 +81,21 @@ Six sessions plus a bonus on how Claude actually works, from "what is this thing
 **Bonus: Cross-Tenant Leakage at the LLM/SaaS Seam.** Why the leak is usually in the surrounding infrastructure, not the model. Covers the embed/write/read control surface and structural leakage.
 
 The four course docs are in the folder, plus a companion [threat-modeling deep-dive](claude_basics/claude_basics-threat-modeling-safety-layers.md) that covers the Session 4 side-threads and the bonus session. Follow-on seminars: training mechanics ([#2](https://github.com/oni49/eggman_courses/issues/2)) and agentic defenses ([#6](https://github.com/oni49/eggman_courses/issues/6)).
+
+### [`llm-memory/`](llm-memory/): LLM Memory, Context Management & Extended Reasoning (in progress)
+
+Eleven sessions on what a model remembers, how its context is managed, and how it thinks, using Claude and Claude Code as the worked example. The through-line is that **the model is a stateless function and everything it "remembers" is something the harness put back in the window, including its own reasoning.**
+
+1. **The Stateless Machine**: frozen weights, the autoregressive loop, and the harness resending the transcript every call
+2. **Anatomy of a Context Window**: tokens, decoder-only transformers, attention, causal masking, and the KV cache
+3. **How Models Forget Without Deleting**: attention dilution, lost-in-the-middle, effective context, and drift through in-context learning
+4. **Context Management**: pinning, truncation, compaction, tool-result pruning, offloading, and the cache tax
+5. **External Memory**: files, RAG, agentic search, and push vs. pull retrieval
+6. **Claude's Memory Stack**: when CLAUDE.md, skills, subagents, and tool definitions enter context, and how long each lasts
+7. **Thinking in Tokens**: fixed compute per token, the scratchpad, and why reasoning must come before the answer
+8. **Trained Reasoners**: RL-trained reasoning, thinking budgets, interleaved thinking, and what is dropped between turns
+9. **Long-Horizon Agents**: compounding error, the window as a cache with disk as the truth, hybrid push/pull status, orchestrator–worker, and context resets
+10. **Watching the Weights** *(upcoming)*: detecting silent model updates, and what "provably static" can mean
+11. **Failure Modes & Open Problems** *(upcoming)*
+
+The five course docs are in the folder, plus a layered [memory diagram](llm-memory/llm-memory-diagram.md) with phone-friendly renders of each layer, and a [deep-dives](llm-memory/llm-memory-deep-dives.md) companion covering push vs. pull, the tool-call loop, and skills vs. subagents.
