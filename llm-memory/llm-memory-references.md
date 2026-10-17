@@ -44,3 +44,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Foundational:* Wei, J. et al. "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models." NeurIPS 2022 (arXiv 2201.11903). The paper that named chain-of-thought prompting.
 - *Verify:* Kojima, T. et al. "Large Language Models are Zero-Shot Reasoners." NeurIPS 2022 (arXiv 2205.11916). The "Let's think step by step" result.
 - *Go deeper:* Merrill, W. & Sabharwal, A. "The Expressive Power of Transformers with Chain of Thought." ICLR 2024 (arXiv 2310.07923). The theory behind "tokens are computation": intermediate steps provably extend what a fixed-depth transformer can compute.
+
+## Session 8: Trained Reasoners
+
+- *Foundational:* DeepSeek-AI. "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning." arXiv 2501.12948, 2025. RL on verifiable rewards, with emergent self-verification and the "aha moment."
+- *Verify:* Anthropic, Claude API documentation, "Building with extended thinking." Covers thinking budgets, thinking blocks and signatures, preserving thinking during tool use, interleaved thinking, and how previous-turn thinking is handled in context. Defaults vary by model generation, so check the current page.
+- *Go deeper:* Snell, C. et al. "Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters." arXiv 2408.03314, 2024. The case for test-time compute as its own scaling axis.

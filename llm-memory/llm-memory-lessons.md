@@ -319,3 +319,35 @@ You need a model to judge whether a contract clause violates a policy, and you'r
 1. Which gives better verdicts on hard cases? Explain using **fixed compute per token** and **causal masking**.
 2. In schema **A**, why is the rationale **unreliable as an explanation** of the verdict, even if it reads convincingly?
 3. In a long agent session, the model writes 15,000 tokens of reasoning on step 3 of a 40-step task. Using the *memory* half of the course, name **two consequences** of that reasoning sitting in the context for steps 4–40.
+
+---
+
+# Session 8: Trained Reasoners
+
+**Recap:** Reasoning tokens are computation. Each one is a fixed-depth pass whose output later passes can read, and they all live in the window. **Today:** what changes when the model is *trained* to reason instead of politely asked to. And the answer to your Session 7 worry about where the old thinking goes.
+
+**From asking to training.**
+Session 7's trick was a request: "think step by step." The model complied using habits it had picked up from human text, which, frankly, mostly isn't careful reasoning. The 2024–25 change was to **train** it. Give the model problems with checkable answers, such as math with known results or code with tests. Let it generate long reasoning. **Reward only correct final answers**, using reinforcement learning. Nobody writes the reasoning for it. The model works out for itself which ways of thinking get rewarded.
+
+What emerged was strange. Without being taught, models began **backtracking**, **checking their own work**, and writing things like *"wait, that's wrong, let me reconsider."* One 2025 paper described an "aha moment" partway through training, when its model spontaneously learned to stop and re-examine itself. Billions of dollars of compute, and the breakthrough was teaching a machine to say "hmm, hang on." Every good engineer reaches the same discovery at about 2 a.m.
+
+**A new dial: test-time compute.**
+For years, "better model" meant bigger model and more training. Reasoning models added a second axis: **think longer at answer time**. On hard tasks, accuracy keeps rising as the thinking budget grows, with diminishing returns. Intelligence became partly a *runtime setting*.
+
+**How it looks on Claude's API.** With extended thinking on, you set a **thinking budget** in tokens. The response then contains `thinking` blocks, the scratchpad, before the visible `text` answer. Thinking tokens are billed as output. Claude Code exposes the same dial through effort settings. Historically, typing "think hard" or "ultrathink" in a prompt raised the budget, which is a real feature, and which proves that someone in product has a sense of humor. *(Simplification flag: parameter names and defaults change between model generations. Check the current docs.)*
+
+**Interleaved thinking.** In agent loops, the model can **think, call a tool, read the result, think again**, all within one turn. That's Session 7's scratchpad combined with the deep-dive tool loop. The rule: during that loop, the harness must send thinking blocks back **unmodified**. They're cryptographically signed, so this is the one part of the transcript you *can't* quietly edit. Session 1's "edit the assistant's words" trick stops here.
+
+**The memory answer you've been waiting for.** What happens to the thinking from earlier turns? By default, Claude's API **drops previous turns' thinking from the context**. Only the visible answers carry forward. Think of a **function call**: thinking is the local variables, the answer is the return value, and when the function returns, the stack frame is popped. That's exactly the fix you prescribed in Session 7: stale reasoning is pruned automatically, so 15K tokens of turn-3 thinking don't haunt turn 40. Any conclusion that needs to survive must be in the *answer*. *(Some newer models change this default. Check the docs for yours.)*
+
+## So what?
+
+Thinking budget is a design decision, not a "max quality" switch. Turn it up for hard, checkable problems such as debugging, proofs, and architecture choices. Turn it down for lookups and formatting, where it only adds latency and cost. In agent harnesses, **never strip or edit thinking blocks during a tool loop**. And when reasoning matters later, make sure the *answer* states the conclusion and its key reasons, because the scratchpad won't be kept.
+
+## Check-in question
+
+You're building an agent on Claude's API with extended thinking and tools.
+
+1. **Turn 1:** the model thinks for 8K tokens, calls a tool, thinks for 3K more, then answers. **Turn 2:** the user asks a follow-up. By default, **what of turn 1's thinking is in the context for turn 2**, and why is that a sensible *memory* design? Use the stack-frame analogy.
+2. To save tokens, your harness **deletes the 8K thinking block** before sending the `tool_result` back in turn 1. **What goes wrong, and why?**
+3. A product manager wants the **maximum thinking budget on every request**. Give **two reasons** against it, one about cost or latency and one from the memory half of the course.

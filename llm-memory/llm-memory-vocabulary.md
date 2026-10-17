@@ -120,3 +120,18 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **Field order in structured output:** Put `reasoning` before `answer` or `verdict` in JSON schemas, because generation runs left to right.
 - **Reasoning tokens as working memory:** Reasoning occupies the context window, uses the budget, gets diluted, and is subject to caching and compaction like any other text.
 - **Correction asymmetry:** A long, fluent wrong chain of reasoning outweighs a short later correction through in-context learning. Fix it by pruning or summarizing the stale reasoning and restating the correction near the end.
+
+## Session 8: Trained Reasoners
+
+- **Reasoning model:** A model trained, not just prompted, to produce long reasoning before answering.
+- **Reinforcement learning (RL) on verifiable rewards:** Training by rewarding correct final answers on checkable tasks (math, code with tests) and letting the model discover useful reasoning strategies.
+- **Emergent self-correction:** Backtracking and self-verification ("wait, that's wrong…") that arises from RL training rather than being explicitly taught.
+- **Test-time compute:** Computation spent at answer time (thinking tokens), a second axis of capability alongside model size and training.
+- **Extended thinking:** Claude's API mode in which the response includes `thinking` blocks before the visible answer.
+- **Thinking budget / effort:** The cap or setting controlling how many tokens the model may spend thinking. Billed as output tokens.
+- **Thinking block:** The scratchpad portion of a response, separate from the visible `text` answer.
+- **Interleaved thinking:** Thinking between tool calls within one turn: think → call tool → read result → think again.
+- **Signed thinking block:** A thinking block carrying a cryptographic signature. It must be returned unmodified during a tool loop, and can't be edited.
+- **Previous-turn thinking stripping:** The default API behavior of dropping earlier turns' thinking from context. Only visible answers, tool calls, and tool results persist (newer models may differ).
+- **Stack-frame analogy:** Thinking = local variables (freed when the turn ends). Answer = return value. Tool calls and results = side effects (persist).
+- **Mid-turn accumulation:** Within a long agentic turn, all thinking stays in context across every tool round trip until the turn ends.

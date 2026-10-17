@@ -242,3 +242,27 @@ flowchart LR
 - **Generated tokens are a scratchpad.** Each later pass reads earlier results, so more tokens means more serial computation.
 - **Causal masking makes order decisive.** Reasoning before the answer is computation. Reasoning after is post-hoc.
 - **Thinking is memory.** Reasoning tokens occupy the window, and a long wrong chain outweighs a short later correction.
+
+## Layer 8: Trained reasoners, and thinking's lifetime (Session 8)
+
+![Layer 8, phone-friendly render](diagram-layer8.png)
+
+```mermaid
+flowchart TB
+    subgraph T1["Turn 1: during the turn (everything resent each round trip)"]
+        direction TB
+        U1["user message"] --> TH1["💭 thinking (signed)"] --> TU1["tool_use"] --> TR1["tool_result"] --> TH2["💭 thinking (signed)"] --> A1["✅ answer"]
+    end
+    subgraph T2["Turn 2: what carries forward"]
+        direction TB
+        U1b["user message"] --> TU1b["tool_use"] --> TR1b["tool_result"] --> A1b["✅ answer"] --> U2["new user message"] --> TH3["💭 fresh thinking"]
+    end
+    T1 -- "turn ends: thinking stripped<br/>(stack frame popped)" --> T2
+    X["❌ never edit or strip thinking<br/>INSIDE the tool loop"] -.-> TH1
+```
+
+**Reading it:**
+- **Trained, not asked:** RL on checkable answers taught models to backtrack and self-verify. Thinking budget is a runtime dial (test-time compute).
+- **During a turn:** thinking interleaves with tool calls and is resent on every round trip. Signed blocks must be returned unmodified.
+- **Between turns:** previous thinking is dropped by default. Answers, tool calls, and tool results persist. Thinking = local variables, answer = return value, tool results = side effects.
+- **Max budget everywhere** costs latency and money, and inside long agent turns it inflates context: dilution, compounding drift, mid-turn overflow.

@@ -176,3 +176,34 @@ It was generated **after** the verdict and conditioned on it: a **post-hoc** jus
 **Traps:**
 - Placing step-3 reasoning "near an end." The pinned prefix owns the start and recent turns own the end. Step 3 is in the **middle**.
 - Answering about *editing* the reasoning (a cache miss) when the question is about it *sitting there*.
+
+---
+
+## Session 8: Trained Reasoners
+
+**Q1. What of turn 1's thinking is in context for turn 2, and why is that sensible?**
+**None of the thinking blocks** (by default). What persists is the visible **answer**, plus turn 1's **`tool_use` and `tool_result` blocks**. Stack-frame analogy: thinking is the **local variables**, freed when the turn returns. The answer is the **return value**. Tool calls and results are **side effects** that outlive the function. It's sensible because it **frees budget and attention**, and it stops stale or wrong reasoning from **anchoring later turns** (Session 7's correction asymmetry, solved automatically). The answer isn't an automatic summary of the thinking. Anything that must survive has to be stated in it deliberately.
+
+*Why this matters:* If a conclusion or its reasoning needs to matter later, it must appear in the answer (or a file), because the scratchpad won't be kept.
+
+**Q2. The harness deletes the 8K thinking block before sending the `tool_result`. What goes wrong?**
+The model loses **why it called the tool** and the **intermediate results it planned to build on**: the scratchpad from Session 7. With interleaved thinking, the API also **requires** signed thinking blocks to be returned **unmodified** during the tool loop, so stripping them produces an error or a model that resumes without its own plan.
+
+*Why this matters:* "Save tokens by trimming thinking" is a tempting harness optimization that breaks agents. Prune *between* turns (the API does it for you), never *within* a tool loop.
+
+**Q3. Two reasons against maximum thinking budget on every request.**
+- **Cost and latency:** thinking is billed as output and adds wait time, with diminishing returns. It's wasted on lookups and formatting.
+- **Memory:** within a turn, especially a long agentic one, thinking **builds up in context across every tool round trip** until the turn ends. That causes **dilution**, **self-reinforcing drift** with no outside correction mid-turn, and a risk of **hitting the window limit mid-turn**, forcing compaction while the plan is half-formed.
+
+*Why this matters:* The effort setting is a per-task design decision. Turn it up for hard, checkable problems, and down everywhere else.
+
+**Follow-up. 25 tool calls at max budget: where does the thinking live until the turn ends, and what does it cause?**
+**In the context window**, interleaved with tool calls and results, and **resent on every one of the 25 round trips**. Cleanup happens only when the turn ends. Problems: **dilution** (everything shares one attention budget), **drift compounding** (call-4 mistakes become examples for calls 5–25, with no human interrupt), and **hard-budget overflow** (mid-turn compaction at the worst possible moment).
+
+*Why this matters:* The longest autonomous turns are exactly where reasoning hurts memory the most, so they need the most deliberate budgeting.
+
+**Traps:**
+- Saying the *thinking* is "summarized into the answer." It's dropped. The answer contains only what the model chose to say.
+- Forgetting that **tool calls and results persist** across turns. Only the thinking is stripped.
+- Claiming previous-turn stripping causes cache misses. It's applied **consistently on every call**, so the prefix matches and the cache hits.
+- Answering "after the turn" when asked about "during the turn." Accumulation happens *within* the turn.
