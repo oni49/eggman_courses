@@ -135,3 +135,22 @@ Running glossary, grouped by session. See the [course map](llm-memory-course-map
 - **Previous-turn thinking stripping:** The default API behavior of dropping earlier turns' thinking from context. Only visible answers, tool calls, and tool results persist (newer models may differ).
 - **Stack-frame analogy:** Thinking = local variables (freed when the turn ends). Answer = return value. Tool calls and results = side effects (persist).
 - **Mid-turn accumulation:** Within a long agentic turn, all thinking stays in context across every tool round trip until the turn ends.
+
+## Session 9: Long-Horizon Agents
+
+- **Long-horizon task:** Work spanning more steps or time than one context window can hold: hours of work, hundreds of tool calls.
+- **Compounding error:** Per-step success rates multiply. 0.99¹⁰⁰ ≈ 37%, and 0.99²⁰⁰ ≈ 13%.
+- **Context as cache:** Treat the window as a fast, lossy cache, with the source of truth on disk. The agent should be able to crash and resume.
+- **Write-ahead log analogy:** Record progress durably *before* relying on it, so recovery doesn't depend on volatile memory.
+- **Structured note-taking:** The agent maintains external state (progress file, to-do list, decisions log) for its future, amnesiac self.
+- **To-do list reinjection:** Claude Code's pattern: the model writes the list with a tool, and the harness keeps re-inserting it near the end of the context.
+- **Hybrid push/pull:** The model *initiates* bookkeeping (pull side, model's decision), and the harness then *pushes* it every turn.
+- **Push the index, pull the details:** Push a compact status summary every turn, and keep the full log available on demand.
+- **Ground truth outside the model:** Tests and git commits define "done" and "where we are," independent of any summary.
+- **Checkpoint:** A durable, recoverable point of progress (for example, a commit).
+- **Orchestrator–worker pattern:** A main agent plans and delegates subtasks to subagents with fresh windows, receiving reports.
+- **Token multiplication:** Multi-agent systems spend far more tokens than single chats, often an order of magnitude or more.
+- **Context reset with handoff:** Starting a fresh session from written notes instead of compacting repeatedly.
+- **Idempotent step:** A step that can be safely repeated, which makes retries possible.
+- **Validator + retry:** External checking turns silent failures into detected ones, so the risk becomes "a failure escaped detection," which is far smaller.
+- **Premature completion:** An agent declaring "done" without verification. Define done by tests, not by the model's claim.

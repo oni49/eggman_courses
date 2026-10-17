@@ -266,3 +266,42 @@ flowchart TB
 - **During a turn:** thinking interleaves with tool calls and is resent on every round trip. Signed blocks must be returned unmodified.
 - **Between turns:** previous thinking is dropped by default. Answers, tool calls, and tool results persist. Thinking = local variables, answer = return value, tool results = side effects.
 - **Max budget everywhere** costs latency and money, and inside long agent turns it inflates context: dilution, compounding drift, mid-turn overflow.
+
+## Layer 9: Long-horizon agents, with the window as a cache (Session 9)
+
+![Layer 9, phone-friendly render](diagram-layer9.png)
+
+```mermaid
+flowchart TB
+    subgraph DISK["💾 Disk = source of truth"]
+        PLAN[("plan / spec<br/>(migration rules)")]
+        STATUS[("status log<br/>per-file result")]
+        GIT[("git commits<br/>checkpoints")]
+        TESTS[("tests / validator<br/>defines 'done'")]
+    end
+    subgraph ORCH["Orchestrator window = cache"]
+        PIN["📌 plan (pinned)"]
+        SUM["🔥 status SUMMARY<br/>pushed every turn"]
+        WORK["current step"]
+    end
+    subgraph W["Worker subagent windows (fresh, discarded)"]
+        W1["migrate file N"]
+    end
+    PLAN -- "push at start" --> PIN
+    STATUS -- "push compact summary" --> SUM
+    WORK -- "pull full log if needed" --> STATUS
+    WORK -- "delegate" --> W1
+    W1 -- "report + log path" --> WORK
+    W1 -- "write result" --> STATUS
+    W1 --> TESTS
+    TESTS -- "fail → retry (idempotent)" --> W1
+    WORK -- "checkpoint" --> GIT
+    RESET["🔄 context reset:<br/>new session from disk"] -.-> ORCH
+```
+
+**Reading it:**
+- **Compounding error:** 0.99ⁿ collapses over long horizons. Validation plus retry changes the risk to "an undetected failure."
+- **The window is a cache, the disk is the truth.** The agent can crash and resume.
+- **Hybrid push/pull:** the model starts the bookkeeping, and the harness pushes a compact summary every turn. Full logs are pulled on demand.
+- **Orchestrator–worker:** noisy work happens in discarded windows. Reports and log paths come back. It costs a lot more tokens.
+- **Reset, don't recompress:** past some point, a fresh session from good notes beats more compaction.

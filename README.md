@@ -94,7 +94,7 @@ Eleven sessions on what a model remembers, how its context is managed, and how i
 6. **Claude's Memory Stack**: when CLAUDE.md, skills, subagents, and tool definitions enter context, and how long each lasts
 7. **Thinking in Tokens**: fixed compute per token, the scratchpad, and why reasoning must come before the answer
 8. **Trained Reasoners**: RL-trained reasoning, thinking budgets, interleaved thinking, and what is dropped between turns
-9. **Long-Horizon Agents** *(upcoming)*
+9. **Long-Horizon Agents**: compounding error, the window as a cache with disk as the truth, hybrid push/pull status, orchestrator–worker, and context resets
 10. **Watching the Weights** *(upcoming)*: detecting silent model updates, and what "provably static" can mean
 11. **Failure Modes & Open Problems** *(upcoming)*
 

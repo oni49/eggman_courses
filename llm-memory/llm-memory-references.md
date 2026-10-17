@@ -50,3 +50,9 @@ Caveat: sources are named from the instructor's training knowledge. Verify URLs 
 - *Foundational:* DeepSeek-AI. "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning." arXiv 2501.12948, 2025. RL on verifiable rewards, with emergent self-verification and the "aha moment."
 - *Verify:* Anthropic, Claude API documentation, "Building with extended thinking." Covers thinking budgets, thinking blocks and signatures, preserving thinking during tool use, interleaved thinking, and how previous-turn thinking is handled in context. Defaults vary by model generation, so check the current page.
 - *Go deeper:* Snell, C. et al. "Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters." arXiv 2408.03314, 2024. The case for test-time compute as its own scaling axis.
+
+## Session 9: Long-Horizon Agents
+
+- *Foundational:* Yao, S. et al. "ReAct: Synergizing Reasoning and Acting in Language Models." ICLR 2023 (arXiv 2210.03629). The reason → act → observe loop underlying modern agents.
+- *Verify:* Kwa, T. et al. (METR). "Measuring AI Ability to Complete Long Tasks." arXiv 2503.14499, 2025. Measures the task length agents can complete reliably, and how fast that horizon is growing.
+- *Go deeper:* Anthropic Engineering blog, "Effective harnesses for long-running agents," 2025. Progress files, feature lists, git as checkpoints, and fresh sessions from handoffs. *(Title and date from training knowledge, so verify.)*

@@ -207,3 +207,35 @@ The model loses **why it called the tool** and the **intermediate results it pla
 - Forgetting that **tool calls and results persist** across turns. Only the thinking is stripped.
 - Claiming previous-turn stripping causes cache misses. It's applied **consistently on every call**, so the prefix matches and the cache hits.
 - Answering "after the turn" when asked about "during the turn." Accumulation happens *within* the turn.
+
+---
+
+## Session 9: Long-Horizon Agents
+
+**Q1. Where should the authoritative done/remaining state live, and push or pull?**
+**On disk**, as a structured status file: one entry per file, with status and validation result. The realistic design is a **hybrid**. The model *initiates* the bookkeeping (it decides to create and update the file), and the harness **pushes** a compact view of it every turn (as Claude Code reinjects its to-do list). Choose push vs. pull by **what forgetting would cost**, not by how routine the task is. Status errors are catastrophic, so push. If set up beforehand (a CLAUDE.md rule plus a hook reading the file), it's push from turn one.
+
+*Why this matters:* Any state an agent must not get wrong should reach the model without depending on the model remembering to look for it.
+
+**Q2. Compaction at file 120 with state only in the conversation: two failures, and how the design prevents them.**
+- **Redoing or overwriting finished files:** the summary doesn't list them precisely. Prevented by the on-disk status file as the source of truth.
+- **Skipping files the summary wrongly claims are done, or missing failures:** prevented by recording validation results to disk, not only in conversation.
+- Also: **the migration rules lose detail** in the summary. Prevented by keeping the **plan and spec on disk too**, in the pinned layer or a plan file, not just the status.
+
+*Why this matters:* Compaction protects only what's in the window. Anything that must survive it needs to live outside the window.
+
+**Q3. Probability that all 200 succeed at 99% each, and what changes the math.**
+0.99²⁰⁰ ≈ **13%**. An **external validator** (tests, schema checks) turns silent failures into **detected** ones, and detected failures can be **retried**. With independent retries, a file failing twice is about 1 in 10,000. The risk becomes "did any failure escape detection?", which is far smaller. Retries require **idempotent** steps.
+
+*Why this matters:* Per-step accuracy alone can't save long tasks. Verification plus retry is what makes them reliable.
+
+**Follow-up. Pull-only status after compaction: the failure sequence, and a way to push.**
+The agent doesn't think to read the file, trusts the compacted summary (which never recorded the failures), and confidently redoes or misses work. **Push:** have the harness reinject a **compact status summary** every turn (counts, outstanding failures, next file, plan pointer), the way Claude Code reinjects its to-do list, or via a hook. Keep the **full log available to pull**, because pushing all of it every turn would fill the window with the bookkeeping.
+
+*Why this matters:* "Push the index, pull the details" lets critical state stay visible without filling the window.
+
+**Traps:**
+- Choosing pull because a task "isn't routine." Base the choice on the **cost of forgetting**.
+- Protecting status on disk but leaving the **instructions** only in conversation.
+- Pushing the *entire* growing log every turn instead of a summary.
+- Treating the model's "done" as done, instead of what the validator says.

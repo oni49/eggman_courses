@@ -351,3 +351,37 @@ You're building an agent on Claude's API with extended thinking and tools.
 1. **Turn 1:** the model thinks for 8K tokens, calls a tool, thinks for 3K more, then answers. **Turn 2:** the user asks a follow-up. By default, **what of turn 1's thinking is in the context for turn 2**, and why is that a sensible *memory* design? Use the stack-frame analogy.
 2. To save tokens, your harness **deletes the 8K thinking block** before sending the `tool_result` back in turn 1. **What goes wrong, and why?**
 3. A product manager wants the **maximum thinking budget on every request**. Give **two reasons** against it, one about cost or latency and one from the memory half of the course.
+
+---
+
+# Session 9: Long-Horizon Agents
+
+**Recap:** Thinking is scratch space that's cleared between turns, and within a long turn it piles up until the turn ends. **Today:** what happens when the task is longer than any single window can hold: hours of work and hundreds of tool calls. Everything from Sessions 1–8 goes wrong at once, and engineers have to plan for all of it.
+
+**The problem, in one equation.** Suppose each step of an agent's work succeeds 99% of the time. That sounds excellent. Over 100 steps, the chance that *every* step succeeds is 0.99¹⁰⁰ ≈ **37%**. Long horizons turn small error rates into probable failure. They also stack up the memory problems: the window fills (Session 4), compaction blurs the plan, the agent drifts based on its own earlier output (Session 3), and the goal stated in turn 1 sinks into the middle of the window.
+
+**The core design principle:** treat the context window as a **cache**, not the source of truth. The truth lives on disk. A well-built long-horizon agent should be able to *crash* and resume from what it wrote down. Systems people will recognize the idea: it's a write-ahead log, applied to a mind that forgets.
+
+**Four patterns, usually combined:**
+
+**1. Structured note-taking.** The agent maintains its own external state: a progress file, a to-do list, a decisions log. Claude Code's **to-do list** is a live example. The model writes it with a tool, and the harness keeps **reinjecting it near the end of the context** as a reminder. It gets the durability of disk plus the recency boost from Session 3. The agent is effectively taking notes for its future, amnesiac self.
+
+**2. Ground truth outside the model.** **Git commits** serve as checkpoints, and **tests** decide what counts as done. They answer "what's finished?" without trusting anyone's memory, including the model's. A passing test suite doesn't depend on a summary.
+
+**3. Orchestrator and workers.** A main agent plans and delegates. **Subagents** do noisy subtasks in fresh windows and return reports (Session 6). The orchestrator's context stays clean, and workers can run in parallel. The cost is **tokens multiplied**, often by an order of magnitude or more compared with a single chat. Report quality becomes the bottleneck, because the orchestrator knows only what its workers chose to tell it.
+
+**4. Reset with a handoff, instead of endless compaction.** Compaction is a JPEG of a JPEG of a JPEG. Past some point it's better to **start a fresh session** from a written handoff: the progress file, the git log, and the next step. A clean window plus good notes beats a cluttered window plus fading memories.
+
+**Failure modes to expect:** declaring success too early, redoing finished work after compaction, quietly losing the goal ("I've refactored the logging library, as nobody asked"), and early errors spreading through everything after them.
+
+## So what?
+
+Plan long agent tasks the way you'd plan a distributed job that can be interrupted. **State on disk, progress made verifiable, steps safe to repeat.** Give the agent a to-do list and a progress file, commit often, and define "done" as tests passing, not the model saying so. Send noisy subtasks to subagents, and keep the orchestrator's window for the plan. Long-horizon reliability is less about smarter models and more about **better bookkeeping**.
+
+## Check-in question
+
+An agent must migrate **200 files** from library A to library B. It's about 8 hours of work, far more than one context window.
+
+1. **Where should the authoritative "done / remaining" state live**, and how does it get into the model's context at each step? **Push or pull?**
+2. Compaction happens at file 120. If that state lived **only in the conversation**, name **two specific things** that could go wrong, and say how your design from Q1 prevents each.
+3. If each file migration independently succeeds **99%** of the time and nothing checks it, what's the probability that **all 200** succeed? Name **one design element** that changes that math, and explain *how* it changes it.
